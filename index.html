@@ -48,6 +48,10 @@ p { margin: 0; max-width: 72ch; }
 .who label { font-weight: 600; }
 .who input { font: 15px var(--sans); padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px;
   background: var(--ground); color: var(--ink); min-width: 0; flex: 1 1 200px; max-width: 320px; }
+.startbtn { font: 600 14px/1 var(--sans); padding: 10px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.who .msg { flex-basis: 100%; }
+.locked .choices button { opacity: .45; cursor: not-allowed; }
 .defs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
 .def { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px;
   display: flex; flex-direction: column; gap: 6px; }
@@ -91,7 +95,7 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   <div class="bar" role="status">
     <span class="count" id="count">0 / 240 images</span>
     <div class="meter" aria-hidden="true"><span id="meter"></span></div>
-    <span class="saved" id="saved">Sauvegarde automatique dans ce navigateur</span>
+    <span class="saved" id="saved">Indique ton prénom pour commencer</span>
   </div>
 
   <header>
@@ -101,8 +105,10 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   </header>
 
   <section class="who">
-    <label for="rater">Ton prénom ou tes initiales</label>
-    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="ex. Marie D.">
+    <label for="rater">Ton prénom</label>
+    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="ex. john">
+    <button id="start" type="button" class="startbtn">Commencer</button>
+    <span class="msg" id="whomsg">Tes réponses s'enregistrent automatiquement sous ce prénom. Reviens plus tard avec le même prénom pour reprendre où tu t'es arrêté·e.</span>
   </section>
 
   <section class="defs" aria-label="Définitions">
@@ -122,34 +128,110 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   <main id="eps"></main>
 
   <section class="actions">
-    <button id="download" type="button">Télécharger mes réponses</button>
+    <button id="download" type="button" class="secondary">Télécharger mes réponses (secours)</button>
     <button id="copy" type="button" class="secondary">Copier mes réponses</button>
-    <span class="msg" id="msg">Une fois fini, télécharge le fichier et envoie-le à la personne qui t'a transmis ce lien.</span>
+    <span class="msg" id="msg">Tes réponses sont enregistrées en ligne à chaque clic. Le téléchargement ne sert que si l'enregistrement en ligne échoue.</span>
   </section>
   <textarea id="fallback" hidden readonly aria-label="Réponses au format JSON"></textarea>
 
-  <footer>Images : jeu de données DROID (Khazatsky et al., 2024), licence CC BY 4.0. Aucune donnée n'est envoyée par cette page : tes réponses restent dans ton navigateur jusqu'à ce que tu les télécharges.</footer>
+  <footer>Images : jeu de données DROID (Khazatsky et al., 2024), licence CC BY 4.0. La page enregistre ton prénom et tes réponses, rien d'autre, dans une feuille de calcul privée de l'équipe de recherche.</footer>
 </div>
 
 <script>
+// Set once the Google Apps Script web app is deployed. Empty = online saving disabled.
+const SAVE_URL = "";
 const EPISODES = ["E01","E02","E03","E04","E05","E06","E07","E08","E09","E10","E11","E12","E13","E14","E15","E16","E17","E18","E19","E20","E21","E22","E23","E24","E25","E26","E27","E28","E29","E30","E31","E32","E33","E34","E35","E36","E37","E38","E39","E40"];
 const N = 6, TOTAL = EPISODES.length * N;
 const CHOICES = [["HOLD", "Tient"], ["PUSH", "Pousse"], ["NONE", "Aucun"], ["UNCLEAR", "Incertain"]];
-const KEY = "crs-t1c-v1";
+const KEY = "crs-t1c-v2";
 const $ = id => document.getElementById(id);
+const norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
+
 let state = { rater: "", labels: {} };
 EPISODES.forEach(e => { state.labels[e] = Array(N).fill(null); });
+let started = false;
 try {
   const s = JSON.parse(localStorage.getItem(KEY) || "null");
   if (s && s.labels) {
     state.rater = s.rater || "";
     EPISODES.forEach(e => { if (Array.isArray(s.labels[e]) && s.labels[e].length === N) state.labels[e] = s.labels[e]; });
   }
-} catch (e) { /* no storage: answers live only in this tab */ }
+} catch (e) { /* no local storage */ }
 
-function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); $("saved").textContent = "Sauvegardé dans ce navigateur"; }
-  catch (e) { $("saved").textContent = "Sauvegarde locale impossible : ne ferme pas l'onglet avant d'avoir téléchargé"; }
+const count = labs => EPISODES.reduce((n, e) => n + labs[e].filter(Boolean).length, 0);
+function setStatus(t) { $("saved").textContent = t; }
+function persistLocal() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+
+function payload() {
+  return { study: "CRS-T1c", version: 2, rater: state.rater, exported_at: new Date().toISOString(),
+           labelled: count(state.labels), total: TOTAL, labels: state.labels };
+}
+
+// --- online saving: debounced, one request in flight, the latest state always wins -----------
+let timer = null, inflight = false, dirty = false;
+function scheduleSave() {
+  dirty = true;
+  if (!SAVE_URL) { setStatus("Enregistré dans ce navigateur (enregistrement en ligne non configuré)"); return; }
+  setStatus("Enregistrement…");
+  clearTimeout(timer);
+  timer = setTimeout(saveNow, 1200);
+}
+async function saveNow() {
+  if (!SAVE_URL || !state.rater || inflight || !dirty) return;
+  inflight = true; dirty = false;
+  let failed = false;
+  try {
+    const r = await fetch(SAVE_URL, { method: "POST", body: JSON.stringify(payload()) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "refused");
+    setStatus(`Enregistré pour « ${state.rater} » · ${count(state.labels)} / ${TOTAL}`);
+  } catch (e) {
+    dirty = true; failed = true;
+    setStatus("Pas d'enregistrement en ligne pour l'instant : nouvel essai automatique. Tes réponses restent dans ce navigateur.");
+  } finally {
+    inflight = false;
+    if (dirty) { clearTimeout(timer); timer = setTimeout(saveNow, failed ? 8000 : 1200); }
+  }
+}
+window.addEventListener("pagehide", () => {
+  if (SAVE_URL && state.rater && dirty && navigator.sendBeacon) {
+    navigator.sendBeacon(SAVE_URL, new Blob([JSON.stringify(payload())], { type: "text/plain" }));
+  }
+});
+
+// --- start: fix the name, load what this name already saved -----------------------------------
+async function start() {
+  const name = norm($("rater").value);
+  if (!name) { $("whomsg").textContent = "Écris d'abord ton prénom."; $("rater").focus(); return; }
+  if (state.rater && state.rater !== name && count(state.labels) > 0) {
+    // another person on this browser: start from a clean sheet for them
+    EPISODES.forEach(e => { state.labels[e] = Array(N).fill(null); });
+  }
+  state.rater = name; $("rater").value = name;
+  $("start").disabled = true;
+  $("whomsg").textContent = "Chargement de tes réponses éventuelles…";
+  if (SAVE_URL) {
+    try {
+      const r = await fetch(SAVE_URL + "?name=" + encodeURIComponent(name));
+      const j = await r.json();
+      if (j.ok && j.found && j.found.labels) {
+        const remote = j.found.labels;
+        if (count(remote) >= count(state.labels)) EPISODES.forEach(e => { if (Array.isArray(remote[e])) state.labels[e] = remote[e]; });
+        $("whomsg").textContent = `Bon retour, ${name} : ${count(state.labels)} réponses retrouvées. Tu peux continuer.`;
+      } else {
+        $("whomsg").textContent = `C'est parti, ${name}. Tout s'enregistre au fil de l'eau.`;
+      }
+    } catch (e) {
+      $("whomsg").textContent = `C'est parti, ${name}. Le serveur ne répond pas pour l'instant : tes réponses restent dans ce navigateur et partiront dès qu'il répondra.`;
+    }
+  } else {
+    $("whomsg").textContent = `C'est parti, ${name}. (Enregistrement en ligne non configuré : pense à télécharger tes réponses à la fin.)`;
+  }
+  started = true;
+  $("start").disabled = false; $("start").textContent = "Changer de prénom";
+  document.body.classList.remove("locked");
+  persistLocal(); paint();
+  setStatus(SAVE_URL ? `Connecté·e : « ${name} »` : "Enregistré dans ce navigateur");
 }
 
 function build() {
@@ -171,7 +253,11 @@ function build() {
       CHOICES.forEach(([v, label]) => {
         const b = document.createElement("button"); b.type = "button"; b.dataset.v = v; b.textContent = label;
         b.id = `b-${eid}-${j}-${v}`;
-        b.addEventListener("click", () => { const a = state.labels[eid]; a[j] = a[j] === v ? null : v; persist(); paint(); });
+        b.addEventListener("click", () => {
+          if (!started) { $("whomsg").textContent = "Écris ton prénom et clique sur « Commencer » avant de répondre."; $("rater").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+          const a = state.labels[eid]; a[j] = a[j] === v ? null : v;
+          persistLocal(); paint(); scheduleSave();
+        });
         ch.append(b);
       });
       fr.append(img, n, ch); grid.append(fr);
@@ -196,43 +282,34 @@ function paint() {
   return done;
 }
 
-function payload() {
-  return JSON.stringify({ study: "CRS-T1c", version: 1, rater: state.rater.trim(),
-    exported_at: new Date().toISOString(), labelled: paint(), total: TOTAL, labels: state.labels }, null, 1);
-}
-
-function needName() {
-  if (state.rater.trim()) return false;
-  $("msg").textContent = "Indique d'abord ton prénom ou tes initiales, tout en haut de la page.";
-  $("rater").focus();
-  return true;
-}
-
 $("rater").value = state.rater;
-$("rater").addEventListener("input", e => { state.rater = e.target.value; persist(); });
+$("start").addEventListener("click", () => {
+  if (started && $("start").textContent === "Changer de prénom") {
+    started = false; document.body.classList.add("locked");
+    $("start").textContent = "Commencer"; $("rater").focus(); $("rater").select();
+    $("whomsg").textContent = "Écris le nouveau prénom puis clique sur « Commencer ».";
+    return;
+  }
+  start();
+});
+$("rater").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!started) start(); } });
 
 $("download").addEventListener("click", () => {
-  if (needName()) return;
-  const safe = state.rater.trim().replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 30) || "anonyme";
-  const blob = new Blob([payload()], { type: "application/json" });
+  if (!state.rater) { $("msg").textContent = "Indique d'abord ton prénom, tout en haut de la page."; return; }
+  const safe = state.rater.replace(/[^a-z0-9_-]+/g, "_").slice(0, 30) || "anonyme";
+  const blob = new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `crs_T1c_${safe}.json`;
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  const d = paint();
-  $("msg").textContent = d < TOTAL
-    ? `Fichier téléchargé (${d} / ${TOTAL} images). Tu peux continuer et le télécharger à nouveau.`
-    : "Fichier téléchargé. Merci ! Envoie-le à la personne qui t'a transmis ce lien.";
+  const a = document.createElement("a"); a.href = url; a.download = `crs_T1c_${safe}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  $("msg").textContent = "Fichier téléchargé. Envoie-le à la personne qui t'a transmis ce lien.";
 });
-
 $("copy").addEventListener("click", () => {
-  if (needName()) return;
-  const txt = payload(); const ta = $("fallback"); ta.value = txt;
+  const txt = JSON.stringify(payload()); const ta = $("fallback"); ta.value = txt;
   const done = ok => { $("msg").textContent = ok ? "Copié. Colle-le dans un message." : "Copie refusée : sélectionne le texte ci-dessous."; ta.hidden = ok; if (!ok) { ta.focus(); ta.select(); } };
   try { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); } catch (e) { done(false); }
 });
 
+document.body.classList.add("locked");
 build(); paint();
 </script>
 </body>
