@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Annotation de saisies robot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f5f7f9; --surface: #ffffff; --ink: #1a2230; --muted: #566274; --rule: #d8dee7;
+  --accent: #1d6a86; --accent-soft: #e3f0f5;
+  --hold: #2b7656; --hold-soft: #e2f1ea; --push: #a95f17; --push-soft: #f8ecdf;
+  --none: #4d5868; --none-soft: #e9edf2; --unclear: #6a5a8c; --unclear-soft: #eeeaf5;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ground: #0f141b; --surface: #161d27; --ink: #e5e9ef; --muted: #9ba6b6; --rule: #2a3442;
+    --accent: #62b4d1; --accent-soft: #16303b;
+    --hold: #6cc59b; --hold-soft: #173126; --push: #e39b55; --push-soft: #36271a;
+    --none: #b3bdcb; --none-soft: #232c38; --unclear: #b9a7e0; --unclear-soft: #2a2438;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.55 var(--sans); padding: 0 20px 64px; }
+.page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--ground); border-bottom: 1px solid var(--rule);
+  padding: 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.bar .count { font: 14px var(--mono); font-variant-numeric: tabular-nums; }
+.meter { flex: 1 1 180px; min-width: 120px; height: 6px; background: var(--none-soft); border-radius: 3px; overflow: hidden; }
+.meter > span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.bar .saved { font-size: 13px; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 12px; padding-top: 28px; }
+.eyebrow { font: 12.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 600 clamp(28px, 4.5vw, 36px)/1.15 var(--serif); margin: 0; text-wrap: balance; }
+h2 { font: 600 20px/1.3 var(--serif); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.who { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+.who label { font-weight: 600; }
+.who input { font: 15px var(--sans); padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px;
+  background: var(--ground); color: var(--ink); min-width: 0; flex: 1 1 200px; max-width: 320px; }
+.defs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.def { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px; }
+.def p { font-size: 14px; color: var(--muted); }
+.k-hold { color: var(--hold); } .k-push { color: var(--push); } .k-none { color: var(--none); } .k-unclear { color: var(--unclear); }
+.rules { font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; padding-left: 1.1em; margin: 0; max-width: 80ch; }
+.ep { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--rule); padding-top: 20px; }
+.ep-head { display: flex; align-items: baseline; gap: 14px; }
+.ep-head .eid { font: 500 18px var(--mono); }
+.ep-head .st { font-size: 13px; color: var(--muted); }
+.frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.frame { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; }
+.frame.done { border-color: var(--muted); }
+.frame img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; display: block; background: var(--none-soft); }
+.frame .n { font: 12.5px var(--mono); color: var(--muted); }
+.choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.choices button { font: 500 12.5px/1.2 var(--sans); padding: 8px 2px; border-radius: 5px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--ground); color: var(--ink); }
+.choices button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choices button[aria-pressed="true"][data-v="HOLD"] { background: var(--hold-soft); border-color: var(--hold); color: var(--hold); }
+.choices button[aria-pressed="true"][data-v="PUSH"] { background: var(--push-soft); border-color: var(--push); color: var(--push); }
+.choices button[aria-pressed="true"][data-v="NONE"] { background: var(--none-soft); border-color: var(--none); color: var(--none); }
+.choices button[aria-pressed="true"][data-v="UNCLEAR"] { background: var(--unclear-soft); border-color: var(--unclear); color: var(--unclear); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid var(--rule); padding-top: 22px; }
+.actions button { font: 600 14px/1 var(--sans); padding: 11px 16px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.actions button.secondary { background: transparent; color: var(--accent); }
+.actions button:disabled { opacity: .45; cursor: not-allowed; }
+.msg { font-size: 14px; color: var(--muted); }
+textarea { width: 100%; min-height: 90px; font: 12px/1.4 var(--mono); background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; }
+@media (max-width: 860px) { .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { body { padding: 0 16px 48px; } .frames { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .meter > span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bar" role="status">
+    <span class="count" id="count">0 / 240 images</span>
+    <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+    <span class="saved" id="saved">Sauvegarde automatique dans ce navigateur</span>
+  </div>
+
+  <header>
+    <div class="eyebrow">Étude de recherche · environ 20 minutes</div>
+    <h1>Annotation de saisies robot</h1>
+    <p>40 courtes séquences filmées par la caméra fixée au poignet d'un bras robot, 6 images chacune. Pour chaque image, indique ce que fait la pince <strong>vis-à-vis de la pièce articulée manipulée</strong> : un tiroir, une porte, un placard, un micro-ondes. Il n'y a pas de piège ni de bonne réponse attendue : réponds ce que tu vois.</p>
+  </header>
+
+  <section class="who">
+    <label for="rater">Ton prénom ou tes initiales</label>
+    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="ex. Marie D.">
+  </section>
+
+  <section class="defs" aria-label="Définitions">
+    <div class="def"><h2 class="k-hold">Tient</h2><p>La pièce articulée (poignée, bouton, levier, bord d'un panneau) est serrée entre les doigts de la pince.</p></div>
+    <div class="def"><h2 class="k-push">Pousse</h2><p>La pince touche la pièce articulée sans la tenir, par exemple poing fermé contre une façade.</p></div>
+    <div class="def"><h2 class="k-none">Aucun</h2><p>Pas de contact avec la pièce articulée, <em>y compris</em> quand la pince tient un autre objet (gobelet, stylo…).</p></div>
+    <div class="def"><h2 class="k-unclear">Incertain</h2><p>Impossible à trancher sur cette image.</p></div>
+  </section>
+
+  <ul class="rules">
+    <li>Juge chaque image pour elle-même.</li>
+    <li>Doigts ouverts autour de la poignée mais pas encore refermés : <strong>Aucun</strong> s'il n'y a pas de contact, <strong>Incertain</strong> si tu ne peux pas le dire.</li>
+    <li>Si tu ne sais pas distinguer « pousse » de « aucun », choisis <strong>Aucun</strong> ou <strong>Incertain</strong> : c'est « Tient » qui compte le plus.</li>
+    <li>Tu peux fermer la page et revenir plus tard sur le même navigateur : tes réponses restent.</li>
+  </ul>
+
+  <main id="eps"></main>
+
+  <section class="actions">
+    <button id="download" type="button">Télécharger mes réponses</button>
+    <button id="copy" type="button" class="secondary">Copier mes réponses</button>
+    <span class="msg" id="msg">Une fois fini, télécharge le fichier et envoie-le à la personne qui t'a transmis ce lien.</span>
+  </section>
+  <textarea id="fallback" hidden readonly aria-label="Réponses au format JSON"></textarea>
+
+  <footer>Images : jeu de données DROID (Khazatsky et al., 2024), licence CC BY 4.0. Aucune donnée n'est envoyée par cette page : tes réponses restent dans ton navigateur jusqu'à ce que tu les télécharges.</footer>
+</div>
+
+<script>
+const EPISODES = ["E01","E02","E03","E04","E05","E06","E07","E08","E09","E10","E11","E12","E13","E14","E15","E16","E17","E18","E19","E20","E21","E22","E23","E24","E25","E26","E27","E28","E29","E30","E31","E32","E33","E34","E35","E36","E37","E38","E39","E40"];
+const N = 6, TOTAL = EPISODES.length * N;
+const CHOICES = [["HOLD", "Tient"], ["PUSH", "Pousse"], ["NONE", "Aucun"], ["UNCLEAR", "Incertain"]];
+const KEY = "crs-t1c-v1";
+const $ = id => document.getElementById(id);
+let state = { rater: "", labels: {} };
+EPISODES.forEach(e => { state.labels[e] = Array(N).fill(null); });
+try {
+  const s = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (s && s.labels) {
+    state.rater = s.rater || "";
+    EPISODES.forEach(e => { if (Array.isArray(s.labels[e]) && s.labels[e].length === N) state.labels[e] = s.labels[e]; });
+  }
+} catch (e) { /* no storage: answers live only in this tab */ }
+
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); $("saved").textContent = "Sauvegardé dans ce navigateur"; }
+  catch (e) { $("saved").textContent = "Sauvegarde locale impossible : ne ferme pas l'onglet avant d'avoir téléchargé"; }
+}
+
+function build() {
+  const root = $("eps");
+  EPISODES.forEach(eid => {
+    const sec = document.createElement("section"); sec.className = "ep";
+    const head = document.createElement("div"); head.className = "ep-head";
+    const t = document.createElement("span"); t.className = "eid"; t.textContent = "Séquence " + eid;
+    const st = document.createElement("span"); st.className = "st"; st.id = "st-" + eid;
+    head.append(t, st);
+    const grid = document.createElement("div"); grid.className = "frames";
+    for (let j = 0; j < N; j++) {
+      const fr = document.createElement("div"); fr.className = "frame"; fr.id = `f-${eid}-${j}`;
+      const img = document.createElement("img");
+      img.src = `frames/${eid}_${j + 1}.jpg`; img.alt = `Séquence ${eid}, image ${j + 1}`; img.loading = "lazy";
+      const n = document.createElement("span"); n.className = "n"; n.textContent = `image ${j + 1} / ${N}`;
+      const ch = document.createElement("div"); ch.className = "choices"; ch.setAttribute("role", "group");
+      ch.setAttribute("aria-label", `Réponse pour l'image ${j + 1}`);
+      CHOICES.forEach(([v, label]) => {
+        const b = document.createElement("button"); b.type = "button"; b.dataset.v = v; b.textContent = label;
+        b.id = `b-${eid}-${j}-${v}`;
+        b.addEventListener("click", () => { const a = state.labels[eid]; a[j] = a[j] === v ? null : v; persist(); paint(); });
+        ch.append(b);
+      });
+      fr.append(img, n, ch); grid.append(fr);
+    }
+    sec.append(head, grid); root.append(sec);
+  });
+}
+
+function paint() {
+  let done = 0;
+  EPISODES.forEach(eid => {
+    const a = state.labels[eid];
+    a.forEach((v, j) => {
+      if (v) done++;
+      $(`f-${eid}-${j}`).classList.toggle("done", !!v);
+      CHOICES.forEach(([c]) => $(`b-${eid}-${j}-${c}`).setAttribute("aria-pressed", String(v === c)));
+    });
+    $("st-" + eid).textContent = `${a.filter(Boolean).length} / ${N}`;
+  });
+  $("count").textContent = `${done} / ${TOTAL} images`;
+  $("meter").style.width = (100 * done / TOTAL).toFixed(1) + "%";
+  return done;
+}
+
+function payload() {
+  return JSON.stringify({ study: "CRS-T1c", version: 1, rater: state.rater.trim(),
+    exported_at: new Date().toISOString(), labelled: paint(), total: TOTAL, labels: state.labels }, null, 1);
+}
+
+function needName() {
+  if (state.rater.trim()) return false;
+  $("msg").textContent = "Indique d'abord ton prénom ou tes initiales, tout en haut de la page.";
+  $("rater").focus();
+  return true;
+}
+
+$("rater").value = state.rater;
+$("rater").addEventListener("input", e => { state.rater = e.target.value; persist(); });
+
+$("download").addEventListener("click", () => {
+  if (needName()) return;
+  const safe = state.rater.trim().replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 30) || "anonyme";
+  const blob = new Blob([payload()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `crs_T1c_${safe}.json`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  const d = paint();
+  $("msg").textContent = d < TOTAL
+    ? `Fichier téléchargé (${d} / ${TOTAL} images). Tu peux continuer et le télécharger à nouveau.`
+    : "Fichier téléchargé. Merci ! Envoie-le à la personne qui t'a transmis ce lien.";
+});
+
+$("copy").addEventListener("click", () => {
+  if (needName()) return;
+  const txt = payload(); const ta = $("fallback"); ta.value = txt;
+  const done = ok => { $("msg").textContent = ok ? "Copié. Colle-le dans un message." : "Copie refusée : sélectionne le texte ci-dessous."; ta.hidden = ok; if (!ok) { ta.focus(); ta.select(); } };
+  try { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+});
+
+build(); paint();
+</script>
+</body>
+</html>
