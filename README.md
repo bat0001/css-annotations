@@ -1,4 +1,5 @@
-# Annotation de saisies robot
+# Robot Grasp Annotation
 
-Page statique d'annotation pour l'étude CRS (étage T1c). Images : DROID (Khazatsky et al., 2024), CC BY 4.0.
-Aucune donnée n'est collectée par le site : chaque annotateur télécharge un fichier JSON et l'envoie.
+Static annotation page for a research study on robot manipulation evaluation (CRS, stage T1c).
+Images: the DROID dataset (Khazatsky et al., 2024), CC BY 4.0.
+Answers are saved under the annotator's first name to a private spreadsheet of the research team.

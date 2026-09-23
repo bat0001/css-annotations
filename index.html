@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Annotation de saisies robot</title>
+<title>Robot Grasp Annotation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
@@ -95,54 +95,54 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   <div class="bar" role="status">
     <span class="count" id="count">0 / 240 images</span>
     <div class="meter" aria-hidden="true"><span id="meter"></span></div>
-    <span class="saved" id="saved">Indique ton prénom pour commencer</span>
+    <span class="saved" id="saved">Enter your first name to start</span>
   </div>
 
   <header>
-    <div class="eyebrow">Étude de recherche · environ 20 minutes</div>
-    <h1>Annotation de saisies robot</h1>
-    <p>40 courtes séquences filmées par la caméra fixée au poignet d'un bras robot, 6 images chacune. Pour chaque image, indique ce que fait la pince <strong>vis-à-vis de la pièce articulée manipulée</strong> : un tiroir, une porte, un placard, un micro-ondes. Il n'y a pas de piège ni de bonne réponse attendue : réponds ce que tu vois.</p>
+    <div class="eyebrow">Research study · about 20 minutes</div>
+    <h1>Robot Grasp Annotation</h1>
+    <p>40 short sequences filmed by a camera mounted on a robot arm's wrist, 6 images each. For every image, say what the gripper is doing <strong>with respect to the articulated part being manipulated</strong>: a drawer, a door, a cabinet, a microwave. There are no trick questions and no expected answer: report what you see.</p>
   </header>
 
   <section class="who">
-    <label for="rater">Ton prénom</label>
-    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="ex. john">
-    <button id="start" type="button" class="startbtn">Commencer</button>
-    <span class="msg" id="whomsg">Tes réponses s'enregistrent automatiquement sous ce prénom. Reviens plus tard avec le même prénom pour reprendre où tu t'es arrêté·e.</span>
+    <label for="rater">Your first name</label>
+    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="e.g. john">
+    <button id="start" type="button" class="startbtn">Start</button>
+    <span class="msg" id="whomsg">Your answers are saved automatically under this name. Come back later with the same name to pick up where you left off. If someone else might use the same first name, add an initial.</span>
   </section>
 
-  <section class="defs" aria-label="Définitions">
-    <div class="def"><h2 class="k-hold">Tient</h2><p>La pièce articulée (poignée, bouton, levier, bord d'un panneau) est serrée entre les doigts de la pince.</p></div>
-    <div class="def"><h2 class="k-push">Pousse</h2><p>La pince touche la pièce articulée sans la tenir, par exemple poing fermé contre une façade.</p></div>
-    <div class="def"><h2 class="k-none">Aucun</h2><p>Pas de contact avec la pièce articulée, <em>y compris</em> quand la pince tient un autre objet (gobelet, stylo…).</p></div>
-    <div class="def"><h2 class="k-unclear">Incertain</h2><p>Impossible à trancher sur cette image.</p></div>
+  <section class="defs" aria-label="Definitions">
+    <div class="def"><h2 class="k-hold">Holding</h2><p>The articulated part (handle, knob, lever, edge of a panel) is gripped between the gripper's fingers.</p></div>
+    <div class="def"><h2 class="k-push">Pushing</h2><p>The gripper touches the articulated part without holding it, for example a closed gripper pressed against a drawer front.</p></div>
+    <div class="def"><h2 class="k-none">None</h2><p>No contact with the articulated part, <em>including</em> when the gripper holds some other object (a cup, a pen…).</p></div>
+    <div class="def"><h2 class="k-unclear">Unsure</h2><p>You cannot tell from this image.</p></div>
   </section>
 
   <ul class="rules">
-    <li>Juge chaque image pour elle-même.</li>
-    <li>Doigts ouverts autour de la poignée mais pas encore refermés : <strong>Aucun</strong> s'il n'y a pas de contact, <strong>Incertain</strong> si tu ne peux pas le dire.</li>
-    <li>Si tu ne sais pas distinguer « pousse » de « aucun », choisis <strong>Aucun</strong> ou <strong>Incertain</strong> : c'est « Tient » qui compte le plus.</li>
-    <li>Tu peux fermer la page et revenir plus tard sur le même navigateur : tes réponses restent.</li>
+    <li>Judge each image on its own.</li>
+    <li>Fingers open around the handle but not yet closed: <strong>None</strong> if there is no contact, <strong>Unsure</strong> if you cannot tell.</li>
+    <li>If you cannot tell Pushing from None, pick <strong>None</strong> or <strong>Unsure</strong>: Holding is the answer that matters most.</li>
+    <li>You can close the page and come back later: your answers are kept.</li>
   </ul>
 
   <main id="eps"></main>
 
   <section class="actions">
-    <button id="download" type="button" class="secondary">Télécharger mes réponses (secours)</button>
-    <button id="copy" type="button" class="secondary">Copier mes réponses</button>
-    <span class="msg" id="msg">Tes réponses sont enregistrées en ligne à chaque clic. Le téléchargement ne sert que si l'enregistrement en ligne échoue.</span>
+    <button id="download" type="button" class="secondary">Download my answers (backup)</button>
+    <button id="copy" type="button" class="secondary">Copy my answers</button>
+    <span class="msg" id="msg">Your answers are saved online at every click. The download is only a backup in case online saving fails.</span>
   </section>
-  <textarea id="fallback" hidden readonly aria-label="Réponses au format JSON"></textarea>
+  <textarea id="fallback" hidden readonly aria-label="Answers as JSON"></textarea>
 
-  <footer>Images : jeu de données DROID (Khazatsky et al., 2024), licence CC BY 4.0. La page enregistre ton prénom et tes réponses, rien d'autre, dans une feuille de calcul privée de l'équipe de recherche.</footer>
+  <footer>Images: the DROID dataset (Khazatsky et al., 2024), CC BY 4.0. This page stores your first name and your answers, nothing else, in a private spreadsheet of the research team.</footer>
 </div>
 
 <script>
 // Set once the Google Apps Script web app is deployed. Empty = online saving disabled.
-const SAVE_URL = "";
+const SAVE_URL = "https://script.google.com/macros/s/AKfycbyv73MBpbq21vG0-EDwxdyiQ48J_nduzNMvAhasUY7MFezCUNBKgw26jrVQmpGrhZeW/exec";
 const EPISODES = ["E01","E02","E03","E04","E05","E06","E07","E08","E09","E10","E11","E12","E13","E14","E15","E16","E17","E18","E19","E20","E21","E22","E23","E24","E25","E26","E27","E28","E29","E30","E31","E32","E33","E34","E35","E36","E37","E38","E39","E40"];
 const N = 6, TOTAL = EPISODES.length * N;
-const CHOICES = [["HOLD", "Tient"], ["PUSH", "Pousse"], ["NONE", "Aucun"], ["UNCLEAR", "Incertain"]];
+const CHOICES = [["HOLD", "Holding"], ["PUSH", "Pushing"], ["NONE", "None"], ["UNCLEAR", "Unsure"]];
 const KEY = "crs-t1c-v2";
 const $ = id => document.getElementById(id);
 const norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
@@ -171,8 +171,8 @@ function payload() {
 let timer = null, inflight = false, dirty = false;
 function scheduleSave() {
   dirty = true;
-  if (!SAVE_URL) { setStatus("Enregistré dans ce navigateur (enregistrement en ligne non configuré)"); return; }
-  setStatus("Enregistrement…");
+  if (!SAVE_URL) { setStatus("Saved in this browser (online saving not configured)"); return; }
+  setStatus("Saving…");
   clearTimeout(timer);
   timer = setTimeout(saveNow, 1200);
 }
@@ -184,10 +184,10 @@ async function saveNow() {
     const r = await fetch(SAVE_URL, { method: "POST", body: JSON.stringify(payload()) });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || "refused");
-    setStatus(`Enregistré pour « ${state.rater} » · ${count(state.labels)} / ${TOTAL}`);
+    setStatus(`Saved for "${state.rater}" · ${count(state.labels)} / ${TOTAL}`);
   } catch (e) {
     dirty = true; failed = true;
-    setStatus("Pas d'enregistrement en ligne pour l'instant : nouvel essai automatique. Tes réponses restent dans ce navigateur.");
+    setStatus("Could not save online yet: retrying automatically. Your answers are kept in this browser.");
   } finally {
     inflight = false;
     if (dirty) { clearTimeout(timer); timer = setTimeout(saveNow, failed ? 8000 : 1200); }
@@ -202,14 +202,14 @@ window.addEventListener("pagehide", () => {
 // --- start: fix the name, load what this name already saved -----------------------------------
 async function start() {
   const name = norm($("rater").value);
-  if (!name) { $("whomsg").textContent = "Écris d'abord ton prénom."; $("rater").focus(); return; }
+  if (!name) { $("whomsg").textContent = "Please type your first name first."; $("rater").focus(); return; }
   if (state.rater && state.rater !== name && count(state.labels) > 0) {
     // another person on this browser: start from a clean sheet for them
     EPISODES.forEach(e => { state.labels[e] = Array(N).fill(null); });
   }
   state.rater = name; $("rater").value = name;
   $("start").disabled = true;
-  $("whomsg").textContent = "Chargement de tes réponses éventuelles…";
+  $("whomsg").textContent = "Looking for answers you may already have saved…";
   if (SAVE_URL) {
     try {
       const r = await fetch(SAVE_URL + "?name=" + encodeURIComponent(name));
@@ -217,21 +217,21 @@ async function start() {
       if (j.ok && j.found && j.found.labels) {
         const remote = j.found.labels;
         if (count(remote) >= count(state.labels)) EPISODES.forEach(e => { if (Array.isArray(remote[e])) state.labels[e] = remote[e]; });
-        $("whomsg").textContent = `Bon retour, ${name} : ${count(state.labels)} réponses retrouvées. Tu peux continuer.`;
+        $("whomsg").textContent = `Welcome back, ${name}: ${count(state.labels)} answers restored. Carry on.`;
       } else {
-        $("whomsg").textContent = `C'est parti, ${name}. Tout s'enregistre au fil de l'eau.`;
+        $("whomsg").textContent = `Let's go, ${name}. Everything is saved as you go.`;
       }
     } catch (e) {
-      $("whomsg").textContent = `C'est parti, ${name}. Le serveur ne répond pas pour l'instant : tes réponses restent dans ce navigateur et partiront dès qu'il répondra.`;
+      $("whomsg").textContent = `Let's go, ${name}. The server is not answering right now: your answers stay in this browser and will be sent as soon as it does.`;
     }
   } else {
-    $("whomsg").textContent = `C'est parti, ${name}. (Enregistrement en ligne non configuré : pense à télécharger tes réponses à la fin.)`;
+    $("whomsg").textContent = `Let's go, ${name}. (Online saving is not configured: remember to download your answers at the end.)`;
   }
   started = true;
-  $("start").disabled = false; $("start").textContent = "Changer de prénom";
+  $("start").disabled = false; $("start").textContent = "Change name";
   document.body.classList.remove("locked");
   persistLocal(); paint();
-  setStatus(SAVE_URL ? `Connecté·e : « ${name} »` : "Enregistré dans ce navigateur");
+  setStatus(SAVE_URL ? `Signed in as "${name}"` : "Saved in this browser");
 }
 
 function build() {
@@ -239,22 +239,22 @@ function build() {
   EPISODES.forEach(eid => {
     const sec = document.createElement("section"); sec.className = "ep";
     const head = document.createElement("div"); head.className = "ep-head";
-    const t = document.createElement("span"); t.className = "eid"; t.textContent = "Séquence " + eid;
+    const t = document.createElement("span"); t.className = "eid"; t.textContent = "Sequence " + eid;
     const st = document.createElement("span"); st.className = "st"; st.id = "st-" + eid;
     head.append(t, st);
     const grid = document.createElement("div"); grid.className = "frames";
     for (let j = 0; j < N; j++) {
       const fr = document.createElement("div"); fr.className = "frame"; fr.id = `f-${eid}-${j}`;
       const img = document.createElement("img");
-      img.src = `frames/${eid}_${j + 1}.jpg`; img.alt = `Séquence ${eid}, image ${j + 1}`; img.loading = "lazy";
+      img.src = `frames/${eid}_${j + 1}.jpg`; img.alt = `Sequence ${eid}, image ${j + 1}`; img.loading = "lazy";
       const n = document.createElement("span"); n.className = "n"; n.textContent = `image ${j + 1} / ${N}`;
       const ch = document.createElement("div"); ch.className = "choices"; ch.setAttribute("role", "group");
-      ch.setAttribute("aria-label", `Réponse pour l'image ${j + 1}`);
+      ch.setAttribute("aria-label", `Answer for image ${j + 1}`);
       CHOICES.forEach(([v, label]) => {
         const b = document.createElement("button"); b.type = "button"; b.dataset.v = v; b.textContent = label;
         b.id = `b-${eid}-${j}-${v}`;
         b.addEventListener("click", () => {
-          if (!started) { $("whomsg").textContent = "Écris ton prénom et clique sur « Commencer » avant de répondre."; $("rater").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+          if (!started) { $("whomsg").textContent = "Type your first name and click Start before answering."; $("rater").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
           const a = state.labels[eid]; a[j] = a[j] === v ? null : v;
           persistLocal(); paint(); scheduleSave();
         });
@@ -284,10 +284,10 @@ function paint() {
 
 $("rater").value = state.rater;
 $("start").addEventListener("click", () => {
-  if (started && $("start").textContent === "Changer de prénom") {
+  if (started && $("start").textContent === "Change name") {
     started = false; document.body.classList.add("locked");
-    $("start").textContent = "Commencer"; $("rater").focus(); $("rater").select();
-    $("whomsg").textContent = "Écris le nouveau prénom puis clique sur « Commencer ».";
+    $("start").textContent = "Start"; $("rater").focus(); $("rater").select();
+    $("whomsg").textContent = "Type the new name, then click Start.";
     return;
   }
   start();
@@ -295,17 +295,17 @@ $("start").addEventListener("click", () => {
 $("rater").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!started) start(); } });
 
 $("download").addEventListener("click", () => {
-  if (!state.rater) { $("msg").textContent = "Indique d'abord ton prénom, tout en haut de la page."; return; }
+  if (!state.rater) { $("msg").textContent = "Enter your first name at the top of the page first."; return; }
   const safe = state.rater.replace(/[^a-z0-9_-]+/g, "_").slice(0, 30) || "anonyme";
   const blob = new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = `crs_T1c_${safe}.json`;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-  $("msg").textContent = "Fichier téléchargé. Envoie-le à la personne qui t'a transmis ce lien.";
+  $("msg").textContent = "File downloaded. Send it to the person who shared this link with you.";
 });
 $("copy").addEventListener("click", () => {
   const txt = JSON.stringify(payload()); const ta = $("fallback"); ta.value = txt;
-  const done = ok => { $("msg").textContent = ok ? "Copié. Colle-le dans un message." : "Copie refusée : sélectionne le texte ci-dessous."; ta.hidden = ok; if (!ok) { ta.focus(); ta.select(); } };
+  const done = ok => { $("msg").textContent = ok ? "Copied. Paste it into a message." : "Copy was blocked: select the text below."; ta.hidden = ok; if (!ok) { ta.focus(); ta.select(); } };
   try { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); } catch (e) { done(false); }
 });
 
