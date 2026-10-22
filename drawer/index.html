@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Robot Drawer Annotation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f5f7f9; --surface: #ffffff; --ink: #1a2230; --muted: #566274; --rule: #d8dee7;
+  --accent: #1d6a86; --accent-soft: #e3f0f5;
+  --yes: #2b7656; --yes-soft: #e2f1ea; --no: #a3412f; --no-soft: #f7e5e1;
+  --open: #2b7656; --open-soft: #e2f1ea; --close: #a95f17; --close-soft: #f8ecdf;
+  --still: #4d5868; --still-soft: #e9edf2; --other: #2f5f9e; --other-soft: #e3ecf8;
+  --unsure: #6a5a8c; --unsure-soft: #eeeaf5;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ground: #0f141b; --surface: #161d27; --ink: #e5e9ef; --muted: #9ba6b6; --rule: #2a3442;
+    --accent: #62b4d1; --accent-soft: #16303b;
+    --yes: #6cc59b; --yes-soft: #173126; --no: #e8887a; --no-soft: #3a211d;
+    --open: #6cc59b; --open-soft: #173126; --close: #e39b55; --close-soft: #36271a;
+    --still: #b3bdcb; --still-soft: #232c38; --other: #8db6ec; --other-soft: #1c2b40;
+    --unsure: #b9a7e0; --unsure-soft: #2a2438;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.55 var(--sans); padding: 0 20px 64px; }
+.page { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--ground); border-bottom: 1px solid var(--rule);
+  padding: 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.bar .count { font: 14px var(--mono); font-variant-numeric: tabular-nums; }
+.meter { flex: 1 1 180px; min-width: 120px; height: 6px; background: var(--still-soft); border-radius: 3px; overflow: hidden; }
+.meter > span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.bar .saved { font-size: 13px; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 12px; padding-top: 28px; }
+.eyebrow { font: 12.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 600 clamp(28px, 4.5vw, 36px)/1.15 var(--serif); margin: 0; text-wrap: balance; }
+h2 { font: 600 19px/1.3 var(--serif); margin: 0; }
+p { margin: 0; max-width: 74ch; }
+.who { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+.who label { font-weight: 600; }
+.who input { font: 15px var(--sans); padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px;
+  background: var(--ground); color: var(--ink); min-width: 0; flex: 1 1 200px; max-width: 320px; }
+.startbtn { font: 600 14px/1 var(--sans); padding: 10px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.who .msg { flex-basis: 100%; }
+.locked .choices button { opacity: .45; cursor: not-allowed; }
+.guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px; }
+.card p { font-size: 14px; color: var(--muted); }
+.card .q { font: 12px var(--mono); color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+.rules { font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; padding-left: 1.1em; margin: 0; max-width: 84ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.filters button { font: 500 13px var(--sans); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.filters button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+main { display: flex; flex-direction: column; gap: 16px; }
+.ep { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 18px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 10px; padding: 14px; }
+.ep.done { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.ep.hidden { display: none; }
+.vid { display: flex; flex-direction: column; gap: 8px; }
+.vid video { width: 100%; aspect-ratio: 1 / 1; border-radius: 6px; background: var(--still-soft); display: block; }
+.vctl { display: flex; gap: 6px; align-items: center; font: 12.5px var(--mono); color: var(--muted); flex-wrap: wrap; }
+.vctl button { font: 500 12.5px var(--sans); padding: 5px 9px; border-radius: 5px; border: 1px solid var(--rule);
+  background: var(--ground); color: var(--ink); cursor: pointer; }
+.vctl button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.qs { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ep-head { display: flex; align-items: baseline; gap: 14px; }
+.ep-head .eid { font: 500 18px var(--mono); }
+.ep-head .st { font-size: 13px; color: var(--muted); }
+.qblock { display: flex; flex-direction: column; gap: 6px; }
+.qblock .label { font-weight: 600; font-size: 14px; }
+.qblock .hint { font-size: 13px; color: var(--muted); }
+.choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.choices button { font: 500 13px/1.2 var(--sans); padding: 8px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--ground); color: var(--ink); }
+.choices button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choices button[aria-pressed="true"][data-c="yes"] { background: var(--yes-soft); border-color: var(--yes); color: var(--yes); }
+.choices button[aria-pressed="true"][data-c="no"] { background: var(--no-soft); border-color: var(--no); color: var(--no); }
+.choices button[aria-pressed="true"][data-c="open"] { background: var(--open-soft); border-color: var(--open); color: var(--open); }
+.choices button[aria-pressed="true"][data-c="close"] { background: var(--close-soft); border-color: var(--close); color: var(--close); }
+.choices button[aria-pressed="true"][data-c="still"] { background: var(--still-soft); border-color: var(--still); color: var(--still); }
+.choices button[aria-pressed="true"][data-c="other"] { background: var(--other-soft); border-color: var(--other); color: var(--other); }
+.choices button[aria-pressed="true"][data-c="unsure"] { background: var(--unsure-soft); border-color: var(--unsure); color: var(--unsure); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid var(--rule); padding-top: 22px; }
+.actions button { font: 600 14px/1 var(--sans); padding: 11px 16px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.actions button.secondary { background: transparent; color: var(--accent); }
+.msg { font-size: 14px; color: var(--muted); }
+textarea { width: 100%; min-height: 90px; font: 12px/1.4 var(--mono); background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; }
+@media (max-width: 720px) { .ep { grid-template-columns: 1fr; } .vid { max-width: 360px; } }
+@media (max-width: 460px) { body { padding: 0 16px 48px; } }
+@media (prefers-reduced-motion: reduce) { .meter > span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bar" role="status">
+    <span class="count" id="count">0 / 0 clips</span>
+    <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+    <span class="saved" id="saved">Enter your first name to start</span>
+  </div>
+
+  <header>
+    <div class="eyebrow">Research study · about 35 minutes, in as many sittings as you like</div>
+    <h1>Robot Drawer Annotation</h1>
+    <p>Short clips of a small robot arm working on a red drawer, with a black handle, in a small white box. Each clip lasts about seven seconds. For every clip, answer three questions about <strong>what you see happen to the drawer</strong>. There is no expected answer and no trick: report what you see, and use <em>Unsure</em> whenever the clip does not let you tell.</p>
+  </header>
+
+  <section class="who">
+    <label for="rater">Your first name</label>
+    <input id="rater" type="text" autocomplete="off" maxlength="40" placeholder="e.g. john">
+    <button id="start" type="button" class="startbtn">Start</button>
+    <span class="msg" id="whomsg">Your answers are saved automatically under this name. Come back later with the same name to pick up where you left off. If someone else might use the same first name, add an initial.</span>
+  </section>
+
+  <section class="guide" aria-label="The three questions">
+    <div class="card"><span class="q">Question 1</span><h2>Grasp</h2><p>Do the gripper's fingers close on the drawer's <strong>handle</strong> at some point in the clip? Touching the box or the drawer front without closing on the handle is <em>No</em>.</p></div>
+    <div class="card"><span class="q">Question 2</span><h2>Drawer motion</h2><p>While the gripper is on the handle, does the drawer <strong>open</strong> (slide out of the box), <strong>close</strong> (slide back in), or <strong>not move</strong>? Judge the drawer, not the arm.</p></div>
+    <div class="card"><span class="q">Question 3</span><h2>Pull or push</h2><p>While on the handle, does the gripper <strong>pull out</strong> (away from the box), <strong>push in</strong> (toward the box), move <strong>another way</strong> (sideways, up, down), or show <strong>no clear motion</strong>?</p></div>
+  </section>
+
+  <ul class="rules">
+    <li>Each clip loops. Use <strong>Slow</strong> to play it at half speed.</li>
+    <li>If the gripper never closes on the handle, answer Question 1 with <strong>No</strong>; for Questions 2 and 3 answer what you see while it touches the drawer, or <strong>Unsure</strong>.</li>
+    <li>You can close the page and come back later: your answers are kept.</li>
+  </ul>
+
+  <div class="filters" role="group" aria-label="Show">
+    <span>Show:</span>
+    <button type="button" data-f="all" aria-pressed="true">All clips</button>
+    <button type="button" data-f="todo" aria-pressed="false">Only clips still to answer</button>
+  </div>
+
+  <main id="eps"></main>
+
+  <section class="actions">
+    <button id="download" type="button" class="secondary">Download my answers (backup)</button>
+    <button id="copy" type="button" class="secondary">Copy my answers</button>
+    <span class="msg" id="msg">Your answers are saved online at every click. The download is only a backup in case online saving fails.</span>
+  </section>
+  <textarea id="fallback" hidden readonly aria-label="Answers as JSON"></textarea>
+
+  <footer>Clips: the SOAR dataset (Zhou et al., 2024; rail-berkeley/soar), re-encoded for web browsers, frames unchanged. This page stores your first name and your answers, nothing else, in a private spreadsheet of the research team.</footer>
+</div>
+
+<script>
+// Filled in by build_site.py from data/t1c_apps_script/url.txt (the multi-study script). Empty = online saving disabled.
+const SAVE_URL = "https://script.google.com/macros/s/AKfycbyv73MBpbq21vG0-EDwxdyiQ48J_nduzNMvAhasUY7MFezCUNBKgw26jrVQmpGrhZeW/exec";
+const STUDY = "CRS-V2-SOAR";
+const CLIPS = [{"id": "S001", "url": "clips/S001.mp4"}, {"id": "S002", "url": "clips/S002.mp4"}, {"id": "S003", "url": "clips/S003.mp4"}, {"id": "S004", "url": "clips/S004.mp4"}, {"id": "S005", "url": "clips/S005.mp4"}, {"id": "S006", "url": "clips/S006.mp4"}, {"id": "S007", "url": "clips/S007.mp4"}, {"id": "S008", "url": "clips/S008.mp4"}, {"id": "S009", "url": "clips/S009.mp4"}, {"id": "S010", "url": "clips/S010.mp4"}, {"id": "S011", "url": "clips/S011.mp4"}, {"id": "S012", "url": "clips/S012.mp4"}, {"id": "S013", "url": "clips/S013.mp4"}, {"id": "S014", "url": "clips/S014.mp4"}, {"id": "S015", "url": "clips/S015.mp4"}, {"id": "S016", "url": "clips/S016.mp4"}, {"id": "S017", "url": "clips/S017.mp4"}, {"id": "S018", "url": "clips/S018.mp4"}, {"id": "S019", "url": "clips/S019.mp4"}, {"id": "S020", "url": "clips/S020.mp4"}, {"id": "S021", "url": "clips/S021.mp4"}, {"id": "S022", "url": "clips/S022.mp4"}, {"id": "S023", "url": "clips/S023.mp4"}, {"id": "S024", "url": "clips/S024.mp4"}, {"id": "S025", "url": "clips/S025.mp4"}, {"id": "S026", "url": "clips/S026.mp4"}, {"id": "S027", "url": "clips/S027.mp4"}, {"id": "S028", "url": "clips/S028.mp4"}, {"id": "S029", "url": "clips/S029.mp4"}, {"id": "S030", "url": "clips/S030.mp4"}, {"id": "S031", "url": "clips/S031.mp4"}, {"id": "S032", "url": "clips/S032.mp4"}, {"id": "S033", "url": "clips/S033.mp4"}, {"id": "S034", "url": "clips/S034.mp4"}, {"id": "S035", "url": "clips/S035.mp4"}, {"id": "S036", "url": "clips/S036.mp4"}, {"id": "S037", "url": "clips/S037.mp4"}, {"id": "S038", "url": "clips/S038.mp4"}, {"id": "S039", "url": "clips/S039.mp4"}, {"id": "S040", "url": "clips/S040.mp4"}, {"id": "S041", "url": "clips/S041.mp4"}, {"id": "S042", "url": "clips/S042.mp4"}, {"id": "S043", "url": "clips/S043.mp4"}, {"id": "S044", "url": "clips/S044.mp4"}, {"id": "S045", "url": "clips/S045.mp4"}, {"id": "S046", "url": "clips/S046.mp4"}, {"id": "S047", "url": "clips/S047.mp4"}, {"id": "S048", "url": "clips/S048.mp4"}, {"id": "S049", "url": "clips/S049.mp4"}, {"id": "S050", "url": "clips/S050.mp4"}, {"id": "S051", "url": "clips/S051.mp4"}, {"id": "S052", "url": "clips/S052.mp4"}, {"id": "S053", "url": "clips/S053.mp4"}, {"id": "S054", "url": "clips/S054.mp4"}, {"id": "S055", "url": "clips/S055.mp4"}, {"id": "S056", "url": "clips/S056.mp4"}, {"id": "S057", "url": "clips/S057.mp4"}, {"id": "S058", "url": "clips/S058.mp4"}, {"id": "S059", "url": "clips/S059.mp4"}, {"id": "S060", "url": "clips/S060.mp4"}, {"id": "S061", "url": "clips/S061.mp4"}, {"id": "S062", "url": "clips/S062.mp4"}, {"id": "S063", "url": "clips/S063.mp4"}, {"id": "S064", "url": "clips/S064.mp4"}, {"id": "S065", "url": "clips/S065.mp4"}, {"id": "S066", "url": "clips/S066.mp4"}, {"id": "S067", "url": "clips/S067.mp4"}, {"id": "S068", "url": "clips/S068.mp4"}, {"id": "S069", "url": "clips/S069.mp4"}, {"id": "S070", "url": "clips/S070.mp4"}, {"id": "S071", "url": "clips/S071.mp4"}, {"id": "S072", "url": "clips/S072.mp4"}, {"id": "S073", "url": "clips/S073.mp4"}, {"id": "S074", "url": "clips/S074.mp4"}, {"id": "S075", "url": "clips/S075.mp4"}, {"id": "S076", "url": "clips/S076.mp4"}, {"id": "S077", "url": "clips/S077.mp4"}, {"id": "S078", "url": "clips/S078.mp4"}, {"id": "S079", "url": "clips/S079.mp4"}, {"id": "S080", "url": "clips/S080.mp4"}, {"id": "S081", "url": "clips/S081.mp4"}, {"id": "S082", "url": "clips/S082.mp4"}, {"id": "S083", "url": "clips/S083.mp4"}, {"id": "S084", "url": "clips/S084.mp4"}, {"id": "S085", "url": "clips/S085.mp4"}, {"id": "S086", "url": "clips/S086.mp4"}, {"id": "S087", "url": "clips/S087.mp4"}, {"id": "S088", "url": "clips/S088.mp4"}, {"id": "S089", "url": "clips/S089.mp4"}, {"id": "S090", "url": "clips/S090.mp4"}, {"id": "S091", "url": "clips/S091.mp4"}, {"id": "S092", "url": "clips/S092.mp4"}, {"id": "S093", "url": "clips/S093.mp4"}, {"id": "S094", "url": "clips/S094.mp4"}, {"id": "S095", "url": "clips/S095.mp4"}, {"id": "S096", "url": "clips/S096.mp4"}, {"id": "S097", "url": "clips/S097.mp4"}, {"id": "S098", "url": "clips/S098.mp4"}, {"id": "S099", "url": "clips/S099.mp4"}, {"id": "S100", "url": "clips/S100.mp4"}, {"id": "S101", "url": "clips/S101.mp4"}, {"id": "S102", "url": "clips/S102.mp4"}, {"id": "S103", "url": "clips/S103.mp4"}, {"id": "S104", "url": "clips/S104.mp4"}, {"id": "S105", "url": "clips/S105.mp4"}, {"id": "S106", "url": "clips/S106.mp4"}, {"id": "S107", "url": "clips/S107.mp4"}, {"id": "S108", "url": "clips/S108.mp4"}, {"id": "S109", "url": "clips/S109.mp4"}, {"id": "S110", "url": "clips/S110.mp4"}, {"id": "S111", "url": "clips/S111.mp4"}, {"id": "S112", "url": "clips/S112.mp4"}, {"id": "S113", "url": "clips/S113.mp4"}, {"id": "S114", "url": "clips/S114.mp4"}, {"id": "S115", "url": "clips/S115.mp4"}, {"id": "S116", "url": "clips/S116.mp4"}, {"id": "S117", "url": "clips/S117.mp4"}, {"id": "S118", "url": "clips/S118.mp4"}, {"id": "S119", "url": "clips/S119.mp4"}, {"id": "S120", "url": "clips/S120.mp4"}, {"id": "S121", "url": "clips/S121.mp4"}, {"id": "S122", "url": "clips/S122.mp4"}, {"id": "S123", "url": "clips/S123.mp4"}, {"id": "S124", "url": "clips/S124.mp4"}, {"id": "S125", "url": "clips/S125.mp4"}, {"id": "S126", "url": "clips/S126.mp4"}, {"id": "S127", "url": "clips/S127.mp4"}, {"id": "S128", "url": "clips/S128.mp4"}, {"id": "S129", "url": "clips/S129.mp4"}, {"id": "S130", "url": "clips/S130.mp4"}, {"id": "S131", "url": "clips/S131.mp4"}, {"id": "S132", "url": "clips/S132.mp4"}, {"id": "S133", "url": "clips/S133.mp4"}, {"id": "S134", "url": "clips/S134.mp4"}, {"id": "S135", "url": "clips/S135.mp4"}, {"id": "S136", "url": "clips/S136.mp4"}, {"id": "S137", "url": "clips/S137.mp4"}, {"id": "S138", "url": "clips/S138.mp4"}, {"id": "S139", "url": "clips/S139.mp4"}, {"id": "S140", "url": "clips/S140.mp4"}, {"id": "S141", "url": "clips/S141.mp4"}, {"id": "S142", "url": "clips/S142.mp4"}, {"id": "S143", "url": "clips/S143.mp4"}, {"id": "S144", "url": "clips/S144.mp4"}, {"id": "S145", "url": "clips/S145.mp4"}, {"id": "S146", "url": "clips/S146.mp4"}, {"id": "S147", "url": "clips/S147.mp4"}, {"id": "S148", "url": "clips/S148.mp4"}, {"id": "S149", "url": "clips/S149.mp4"}, {"id": "S150", "url": "clips/S150.mp4"}, {"id": "S151", "url": "clips/S151.mp4"}, {"id": "S152", "url": "clips/S152.mp4"}, {"id": "S153", "url": "clips/S153.mp4"}, {"id": "S154", "url": "clips/S154.mp4"}, {"id": "S155", "url": "clips/S155.mp4"}, {"id": "S156", "url": "clips/S156.mp4"}, {"id": "S157", "url": "clips/S157.mp4"}, {"id": "S158", "url": "clips/S158.mp4"}, {"id": "S159", "url": "clips/S159.mp4"}, {"id": "S160", "url": "clips/S160.mp4"}];
+const QUESTIONS = [
+  ["grasp", "1 · Does the gripper close on the handle?", [["YES", "Yes", "yes"], ["NO", "No", "no"], ["UNSURE", "Unsure", "unsure"]]],
+  ["motion", "2 · While on the handle, the drawer…", [["OPENS", "Opens (comes out)", "open"], ["CLOSES", "Closes (goes in)", "close"], ["STILL", "Does not move", "still"], ["UNSURE", "Unsure", "unsure"]]],
+  ["push", "3 · While on the handle, the gripper…", [["OUT", "Pulls out", "open"], ["IN", "Pushes in", "close"], ["OTHER", "Moves another way", "other"], ["NONE", "No clear motion", "still"], ["UNSURE", "Unsure", "unsure"]]],
+];
+const QN = QUESTIONS.length, TOTAL = CLIPS.length;
+const KEY = "crs-v2soar-v1";
+const $ = id => document.getElementById(id);
+const norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
+const blank = () => Object.fromEntries(QUESTIONS.map(([q]) => [q, null]));
+
+let state = { rater: "", labels: {} };
+CLIPS.forEach(c => { state.labels[c.id] = blank(); });
+let started = false, filter = "all";
+try {
+  const s = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (s && s.labels) {
+    state.rater = s.rater || "";
+    CLIPS.forEach(c => { if (s.labels[c.id]) state.labels[c.id] = Object.assign(blank(), s.labels[c.id]); });
+  }
+} catch (e) { /* no local storage */ }
+
+const complete = a => QUESTIONS.every(([q]) => !!a[q]);
+const countDone = labs => CLIPS.reduce((n, c) => n + (labs[c.id] && complete(labs[c.id]) ? 1 : 0), 0);
+const countAnswers = labs => CLIPS.reduce((n, c) => n + QUESTIONS.filter(([q]) => labs[c.id] && labs[c.id][q]).length, 0);
+function setStatus(t) { $("saved").textContent = t; }
+function persistLocal() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+function payload() {
+  return { study: STUDY, version: 1, rater: state.rater, exported_at: new Date().toISOString(),
+           labelled: countDone(state.labels), total: TOTAL, answers: countAnswers(state.labels), labels: state.labels };
+}
+
+// --- online saving: debounced, one request in flight, the latest state always wins -----------
+let timer = null, inflight = false, dirty = false;
+function scheduleSave() {
+  dirty = true;
+  if (!SAVE_URL) { setStatus("Saved in this browser (online saving not configured)"); return; }
+  setStatus("Saving…");
+  clearTimeout(timer);
+  timer = setTimeout(saveNow, 1200);
+}
+async function saveNow() {
+  if (!SAVE_URL || !state.rater || inflight || !dirty) return;
+  inflight = true; dirty = false;
+  let failed = false;
+  try {
+    const r = await fetch(SAVE_URL, { method: "POST", body: JSON.stringify(payload()) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "refused");
+    setStatus(`Saved for "${state.rater}" · ${countDone(state.labels)} / ${TOTAL} clips`);
+  } catch (e) {
+    dirty = true; failed = true;
+    setStatus("Could not save online yet: retrying automatically. Your answers are kept in this browser.");
+  } finally {
+    inflight = false;
+    if (dirty) { clearTimeout(timer); timer = setTimeout(saveNow, failed ? 8000 : 1200); }
+  }
+}
+window.addEventListener("pagehide", () => {
+  if (SAVE_URL && state.rater && dirty && navigator.sendBeacon) {
+    navigator.sendBeacon(SAVE_URL, new Blob([JSON.stringify(payload())], { type: "text/plain" }));
+  }
+});
+
+// --- start: fix the name, load what this name already saved -----------------------------------
+async function start() {
+  const name = norm($("rater").value);
+  if (!name) { $("whomsg").textContent = "Please type your first name first."; $("rater").focus(); return; }
+  if (state.rater && state.rater !== name && countAnswers(state.labels) > 0) {
+    CLIPS.forEach(c => { state.labels[c.id] = blank(); });            // another person on this browser
+  }
+  state.rater = name; $("rater").value = name;
+  $("start").disabled = true;
+  $("whomsg").textContent = "Looking for answers you may already have saved…";
+  if (SAVE_URL) {
+    try {
+      const r = await fetch(SAVE_URL + "?study=" + encodeURIComponent(STUDY) + "&name=" + encodeURIComponent(name));
+      const j = await r.json();
+      if (j.ok && j.found && j.found.labels) {
+        const remote = j.found.labels;
+        if (countAnswers(remote) >= countAnswers(state.labels)) CLIPS.forEach(c => { if (remote[c.id]) state.labels[c.id] = Object.assign(blank(), remote[c.id]); });
+        $("whomsg").textContent = `Welcome back, ${name}: ${countDone(state.labels)} clips restored. Carry on.`;
+      } else {
+        $("whomsg").textContent = `Let's go, ${name}. Everything is saved as you go.`;
+      }
+    } catch (e) {
+      $("whomsg").textContent = `Let's go, ${name}. The server is not answering right now: your answers stay in this browser and will be sent as soon as it does.`;
+    }
+  } else {
+    $("whomsg").textContent = `Let's go, ${name}. (Online saving is not configured: remember to download your answers at the end.)`;
+  }
+  started = true;
+  $("start").disabled = false; $("start").textContent = "Change name";
+  document.body.classList.remove("locked");
+  persistLocal(); paint();
+  setStatus(SAVE_URL ? `Signed in as "${name}"` : "Saved in this browser");
+}
+
+// --- clips load and play only while on screen, to keep data use and CPU low ---------------------
+const seen = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const v = en.target;
+    if (en.isIntersecting) {
+      if (!v.src) { v.src = v.dataset.src; }
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  });
+}, { rootMargin: "200px 0px" });
+
+function build() {
+  const root = $("eps");
+  CLIPS.forEach(c => {
+    const sec = document.createElement("section"); sec.className = "ep"; sec.id = "ep-" + c.id;
+    const vid = document.createElement("div"); vid.className = "vid";
+    const v = document.createElement("video");
+    v.dataset.src = c.url; v.muted = true; v.loop = true; v.playsInline = true; v.preload = "none";
+    v.setAttribute("aria-label", `Clip ${c.id}`);
+    const ctl = document.createElement("div"); ctl.className = "vctl";
+    const pp = document.createElement("button"); pp.type = "button"; pp.textContent = "Pause";
+    pp.addEventListener("click", () => { if (v.paused) { v.play().catch(() => {}); pp.textContent = "Pause"; } else { v.pause(); pp.textContent = "Play"; } });
+    const slow = document.createElement("button"); slow.type = "button"; slow.textContent = "Slow"; slow.setAttribute("aria-pressed", "false");
+    slow.addEventListener("click", () => { const on = v.playbackRate === 1; v.playbackRate = on ? 0.5 : 1; slow.setAttribute("aria-pressed", String(on)); });
+    const again = document.createElement("button"); again.type = "button"; again.textContent = "From the start";
+    again.addEventListener("click", () => { v.currentTime = 0; v.play().catch(() => {}); pp.textContent = "Pause"; });
+    ctl.append(pp, slow, again);
+    vid.append(v, ctl);
+    seen.observe(v);
+
+    const qs = document.createElement("div"); qs.className = "qs";
+    const head = document.createElement("div"); head.className = "ep-head";
+    const t = document.createElement("span"); t.className = "eid"; t.textContent = "Clip " + c.id;
+    const st = document.createElement("span"); st.className = "st"; st.id = "st-" + c.id;
+    head.append(t, st); qs.append(head);
+    QUESTIONS.forEach(([q, label, opts]) => {
+      const blk = document.createElement("div"); blk.className = "qblock";
+      const l = document.createElement("span"); l.className = "label"; l.textContent = label;
+      const ch = document.createElement("div"); ch.className = "choices"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", label);
+      opts.forEach(([val, text, cls]) => {
+        const b = document.createElement("button"); b.type = "button"; b.dataset.c = cls; b.textContent = text;
+        b.id = `b-${c.id}-${q}-${val}`;
+        b.addEventListener("click", () => {
+          if (!started) { $("whomsg").textContent = "Type your first name and click Start before answering."; $("rater").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+          const a = state.labels[c.id]; a[q] = a[q] === val ? null : val;
+          persistLocal(); paint(); scheduleSave();
+        });
+        ch.append(b);
+      });
+      blk.append(l, ch); qs.append(blk);
+    });
+    sec.append(vid, qs); root.append(sec);
+  });
+}
+
+function paint() {
+  const done = countDone(state.labels);
+  CLIPS.forEach(c => {
+    const a = state.labels[c.id];
+    QUESTIONS.forEach(([q, , opts]) => opts.forEach(([val]) => $(`b-${c.id}-${q}-${val}`).setAttribute("aria-pressed", String(a[q] === val))));
+    const n = QUESTIONS.filter(([q]) => a[q]).length;
+    $("st-" + c.id).textContent = `${n} / ${QN} answered`;
+    const sec = $("ep-" + c.id);
+    sec.classList.toggle("done", n === QN);
+    sec.classList.toggle("hidden", filter === "todo" && n === QN);
+  });
+  $("count").textContent = `${done} / ${TOTAL} clips`;
+  $("meter").style.width = (100 * done / TOTAL).toFixed(1) + "%";
+}
+
+$("rater").value = state.rater;
+$("start").addEventListener("click", () => {
+  if (started && $("start").textContent === "Change name") {
+    started = false; document.body.classList.add("locked");
+    $("start").textContent = "Start"; $("rater").focus(); $("rater").select();
+    $("whomsg").textContent = "Type the new name, then click Start.";
+    return;
+  }
+  start();
+});
+$("rater").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!started) start(); } });
+document.querySelectorAll(".filters button").forEach(b => b.addEventListener("click", () => {
+  filter = b.dataset.f;
+  document.querySelectorAll(".filters button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  paint();
+}));
+$("download").addEventListener("click", () => {
+  if (!state.rater) { $("msg").textContent = "Enter your first name at the top of the page first."; return; }
+  const safe = state.rater.replace(/[^a-z0-9_-]+/g, "_").slice(0, 30) || "anonymous";
+  const blob = new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = `crs_v2soar_${safe}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  $("msg").textContent = "File downloaded. Send it to the person who shared this link with you.";
+});
+$("copy").addEventListener("click", () => {
+  const txt = JSON.stringify(payload()); const ta = $("fallback"); ta.value = txt;
+  const done = ok => { $("msg").textContent = ok ? "Copied. Paste it into a message." : "Copy was blocked: select the text below."; ta.hidden = ok; if (!ok) { ta.focus(); ta.select(); } };
+  try { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+});
+
+document.body.classList.add("locked");
+build(); paint();
+</script>
+</body>
+</html>
