@@ -61,6 +61,8 @@ p { margin: 0; max-width: 74ch; }
   display: flex; flex-direction: column; gap: 6px; }
 .card p { font-size: 14px; color: var(--muted); }
 .card .q { font: 12px var(--mono); color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+.tricky { background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.tricky ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 5px; font-size: 14px; color: var(--muted); max-width: 92ch; }
 .rules { font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; padding-left: 1.1em; margin: 0; max-width: 84ch; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
 .filters button { font: 500 13px var(--sans); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--rule);
@@ -118,9 +120,9 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   </div>
 
   <header>
-    <div class="eyebrow">Research study · about 35 minutes, in as many sittings as you like</div>
+    <div class="eyebrow">Research study · about 40 minutes, in as many sittings as you like</div>
     <h1>Robot Drawer Annotation</h1>
-    <p>Short clips of a small robot arm working on a red drawer, with a black handle, in a small white box. Each clip lasts about seven seconds. For every clip, answer three questions about <strong>what you see happen to the drawer</strong>. There is no expected answer and no trick: report what you see, and use <em>Unsure</em> whenever the clip does not let you tell.</p>
+    <p>Short clips of a small robot arm working on a red drawer, with a black handle, in a small white box. Each clip lasts about seven seconds. For every clip, answer four questions about <strong>what you see happen</strong> to the drawer and the gripper. There is no expected answer and no trick: report what you see, and use <em>Unsure</em> whenever the clip does not let you tell.</p>
   </header>
 
   <section class="who">
@@ -130,15 +132,25 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
     <span class="msg" id="whomsg">Your answers are saved automatically under this name. Come back later with the same name to pick up where you left off. If someone else might use the same first name, add an initial.</span>
   </section>
 
-  <section class="guide" aria-label="The three questions">
+  <section class="guide" aria-label="The four questions">
     <div class="card"><span class="q">Question 1</span><h2>Grasp</h2><p>Do the gripper's fingers close on the drawer's <strong>handle</strong> at some point in the clip? Touching the box or the drawer front without closing on the handle is <em>No</em>.</p></div>
     <div class="card"><span class="q">Question 2</span><h2>Drawer motion</h2><p>While the gripper is on the handle, does the drawer <strong>open</strong> (slide out of the box), <strong>close</strong> (slide back in), or <strong>not move</strong>? Judge the drawer, not the arm.</p></div>
     <div class="card"><span class="q">Question 3</span><h2>Pull or push</h2><p>While on the handle, does the gripper <strong>pull out</strong> (away from the box), <strong>push in</strong> (toward the box), move <strong>another way</strong> (sideways, up, down), or show <strong>no clear motion</strong>?</p></div>
+    <div class="card"><span class="q">Question 4</span><h2>Clean or messy</h2><p>While on the handle, does the gripper move <strong>cleanly</strong> (smoothly, mostly in one direction) or is it <strong>messy</strong> (jerks, twists, swerves, moves in several directions)? Judge the gripper's motion, not whether the drawer opens.</p></div>
+  </section>
+
+  <section class="tricky" aria-label="Tricky cases">
+    <h2>Tricky cases</h2>
+    <ul>
+      <li><strong>The drawer opens, but the robot is all over the place.</strong> Answer Questions 1 to 3 as usual (the drawer <em>Opens</em>; for Question 3 give the gripper's main direction) and Question 4 <em>Messy</em>.</li>
+      <li><strong>The drawer moves although the fingers never close on the handle</strong> (hooked with open fingers, caught by the edge, knocked). Question 1 is <em>No</em>; for Questions 2 to 4 answer what you see while the gripper touches the drawer.</li>
+      <li><strong>The drawer opens and is then pushed back in</strong> (or the reverse). For Questions 2 and 3, describe the <em>first clear movement</em>.</li>
+      <li><strong>You cannot see</strong> (the arm hides the drawer, it goes too fast): answer <em>Unsure</em>. It is a valid answer, not a failure.</li>
+    </ul>
   </section>
 
   <ul class="rules">
     <li>Each clip loops. Use <strong>Slow</strong> to play it at half speed.</li>
-    <li>If the gripper never closes on the handle, answer Question 1 with <strong>No</strong>; for Questions 2 and 3 answer what you see while it touches the drawer, or <strong>Unsure</strong>.</li>
     <li>You can close the page and come back later: your answers are kept.</li>
   </ul>
 
@@ -169,6 +181,7 @@ const QUESTIONS = [
   ["grasp", "1 · Does the gripper close on the handle?", [["YES", "Yes", "yes"], ["NO", "No", "no"], ["UNSURE", "Unsure", "unsure"]]],
   ["motion", "2 · While on the handle, the drawer…", [["OPENS", "Opens (comes out)", "open"], ["CLOSES", "Closes (goes in)", "close"], ["STILL", "Does not move", "still"], ["UNSURE", "Unsure", "unsure"]]],
   ["push", "3 · While on the handle, the gripper…", [["OUT", "Pulls out", "open"], ["IN", "Pushes in", "close"], ["OTHER", "Moves another way", "other"], ["NONE", "No clear motion", "still"], ["UNSURE", "Unsure", "unsure"]]],
+  ["gesture", "4 · The gripper's motion on the handle is…", [["CLEAN", "Clean", "yes"], ["MESSY", "Messy (jerks, twists, all over)", "close"], ["UNSURE", "Unsure", "unsure"]]],
 ];
 const QN = QUESTIONS.length, TOTAL = CLIPS.length;
 const KEY = "crs-v2soar-v1";
@@ -193,7 +206,7 @@ const countAnswers = labs => CLIPS.reduce((n, c) => n + QUESTIONS.filter(([q]) =
 function setStatus(t) { $("saved").textContent = t; }
 function persistLocal() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
 function payload() {
-  return { study: STUDY, version: 1, rater: state.rater, exported_at: new Date().toISOString(),
+  return { study: STUDY, version: 2, rater: state.rater, exported_at: new Date().toISOString(),
            labelled: countDone(state.labels), total: TOTAL, answers: countAnswers(state.labels), labels: state.labels };
 }
 
