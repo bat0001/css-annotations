@@ -98,6 +98,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .choices button[aria-pressed="true"][data-c="still"] { background: var(--still-soft); border-color: var(--still); color: var(--still); }
 .choices button[aria-pressed="true"][data-c="other"] { background: var(--other-soft); border-color: var(--other); color: var(--other); }
 .choices button[aria-pressed="true"][data-c="unsure"] { background: var(--unsure-soft); border-color: var(--unsure); color: var(--unsure); }
+.mark { font: 13px var(--mono); color: var(--muted); }
+.mark.set { color: var(--close); }
 .choices button[aria-pressed="true"][data-c="nt"] { background: var(--still-soft); border: 1px dashed var(--muted); color: var(--muted); }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid var(--rule); padding-top: 22px; }
 .actions button { font: 600 14px/1 var(--sans); padding: 11px 16px; border-radius: 6px; cursor: pointer;
@@ -121,9 +123,9 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
   </div>
 
   <header>
-    <div class="eyebrow">Research study · about 40 minutes, in as many sittings as you like</div>
+    <div class="eyebrow">Research study · about 45 minutes, in as many sittings as you like</div>
     <h1>Robot Drawer Annotation</h1>
-    <p>Short clips of a small robot arm working on a red drawer, with a black handle, in a small white box. Each clip lasts about seven seconds. For every clip, answer four questions about <strong>what you see happen</strong> to the drawer and the gripper. There is no expected answer and no trick: report what you see, and use <em>Unsure</em> whenever the clip does not let you tell.</p>
+    <p>Short clips of a small robot arm working on a red drawer, with a black handle, in a small white box. Each clip lasts about seven seconds. For every clip, answer four questions about <strong>what you see happen</strong> to the drawer and the gripper, and mark <strong>when it goes wrong</strong>, if it does. There is no expected answer and no trick: report what you see, and use <em>Unsure</em> whenever the clip does not let you tell.</p>
   </header>
 
   <section class="who">
@@ -133,11 +135,12 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
     <span class="msg" id="whomsg">Your answers are saved automatically under this name. Come back later with the same name to pick up where you left off. If someone else might use the same first name, add an initial.</span>
   </section>
 
-  <section class="guide" aria-label="The four questions">
+  <section class="guide" aria-label="The five questions">
     <div class="card"><span class="q">Question 1</span><h2>Grasp</h2><p>Do the gripper's fingers close on the drawer's <strong>handle</strong> at some point in the clip? <strong>Yes, firmly</strong>: it closes and holds. <strong>Yes, but poorly</strong>: it closes but holds loosely, slips along the handle, or lets go and grasps again. Touching the box or the drawer front without closing on the handle is <em>No</em>.</p></div>
     <div class="card"><span class="q">Question 2</span><h2>Drawer motion</h2><p>While the gripper holds the handle <strong>or touches the drawer</strong>, does the drawer <strong>open</strong> (slide out of the box), <strong>close</strong> (slide back in), or <strong>not move</strong>? Judge the drawer, not the arm.</p></div>
     <div class="card"><span class="q">Question 3</span><h2>Pull or push</h2><p>While it holds the handle or touches the drawer, does the gripper <strong>pull out</strong> (away from the box), <strong>push in</strong> (toward the box), move <strong>another way</strong> (sideways, up, down), or show <strong>no clear motion</strong>? If it never touches the drawer: <strong>Does not touch</strong>.</p></div>
     <div class="card"><span class="q">Question 4</span><h2>Clean or messy</h2><p>While it holds the handle or touches the drawer, does the gripper move <strong>cleanly</strong> (smoothly, mostly in one direction) or is it <strong>messy</strong> (jerks, twists, swerves, moves in several directions)? Judge the gripper's motion, not whether the drawer opens. <strong>Clean</strong> only if it stays clean from start to end: as soon as one part clearly goes off the rails, answer <strong>Messy</strong>. If it never touches the drawer: <strong>Does not touch</strong>.</p></div>
+    <div class="card"><span class="q">Question 5</span><h2>When does it go wrong?</h2><p>Mark the moment the robot <strong>starts</strong> doing something wrong (pushes the wrong way, slips off, twists, lets go, keeps pulling a drawer that does not move, misses the handle) and when it <strong>stops</strong>: pause the clip at the right moment and click <strong>Start: now</strong>, then <strong>End: now</strong> (or <strong>until the end of the clip</strong>). If several things go wrong, mark the <strong>first</strong>. If nothing goes wrong: <strong>Nothing goes wrong</strong>.</p></div>
   </section>
 
   <section class="tricky" aria-label="Tricky cases">
@@ -150,6 +153,7 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--rul
       <li><strong>The gripper never touches the drawer at all.</strong> Question 1 <em>No</em>, Question 2 <em>Does not move</em>, Questions 3 and 4 <em>Does not touch</em>.</li>
       <li><strong>The drawer opens and is then pushed back in</strong> (or the reverse). For Questions 2 and 3, describe the <em>first clear movement</em>.</li>
       <li><strong>You cannot see</strong> (the arm hides the drawer, it goes too fast): answer <em>Unsure</em>. It is a valid answer, not a failure.</li>
+      <li><strong>Question 5, the clip loops.</strong> The time under the clip restarts at 0 when it loops: mark the start and the end within the same pass. <em>Pause</em>, then <em>◀</em> / <em>▶</em> (one frame back or forward) to stop at the right frame.</li>
     </ul>
   </section>
 
@@ -187,13 +191,17 @@ const QUESTIONS = [
   ["push", "3 · While holding or touching the drawer, the gripper…", [["OUT", "Pulls out", "open"], ["IN", "Pushes in", "close"], ["OTHER", "Moves another way", "other"], ["NONE", "No clear motion", "still"], ["NOTOUCH", "Does not touch", "nt"], ["UNSURE", "Unsure", "unsure"]]],
   ["gesture", "4 · While holding or touching the drawer, the gripper's motion is…", [["CLEAN", "Clean", "yes"], ["MESSY", "Messy (jerks, twists, all over)", "close"], ["NOTOUCH", "Does not touch", "nt"], ["UNSURE", "Unsure", "unsure"]]],
 ];
-const QN = QUESTIONS.length, TOTAL = CLIPS.length;
+const QN = QUESTIONS.length + 1, TOTAL = CLIPS.length;          // + question 5, the time marker ("wrong")
 const KEY = "crs-v2soar-v1";
 const $ = id => document.getElementById(id);
 const norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
-const blank = () => Object.fromEntries(QUESTIONS.map(([q]) => [q, null]));
+const blank = () => Object.assign(Object.fromEntries(QUESTIONS.map(([q]) => [q, null])), { wrong: null });
 const VALID = Object.fromEntries(QUESTIONS.map(([q, , opts]) => [q, new Set(opts.map(o => o[0]))]));
-const clean = a => Object.fromEntries(QUESTIONS.map(([q]) => [q, a && VALID[q].has(a[q]) ? a[q] : null]));   // drops answers to options that no longer exist
+const validWrong = w => w === "NONE" || w === "UNSURE" ||
+  (w && typeof w === "object" && Number.isFinite(w.start) && (w.end === null || (Number.isFinite(w.end) && w.end >= w.start)));
+const wrongDone = w => w === "NONE" || w === "UNSURE" || (!!w && typeof w === "object" && Number.isFinite(w.end));
+const clean = a => Object.assign(Object.fromEntries(QUESTIONS.map(([q]) => [q, a && VALID[q].has(a[q]) ? a[q] : null])),
+  { wrong: a && validWrong(a.wrong) ? a.wrong : null });   // drops answers to options that no longer exist
 
 let state = { rater: "", labels: {} };
 CLIPS.forEach(c => { state.labels[c.id] = blank(); });
@@ -206,13 +214,13 @@ try {
   }
 } catch (e) { /* no local storage */ }
 
-const complete = a => QUESTIONS.every(([q]) => !!a[q]);
+const complete = a => QUESTIONS.every(([q]) => !!a[q]) && wrongDone(a.wrong);
 const countDone = labs => CLIPS.reduce((n, c) => n + (labs[c.id] && complete(labs[c.id]) ? 1 : 0), 0);
-const countAnswers = labs => CLIPS.reduce((n, c) => n + QUESTIONS.filter(([q]) => labs[c.id] && labs[c.id][q]).length, 0);
+const countAnswers = labs => CLIPS.reduce((n, c) => n + (labs[c.id] ? QUESTIONS.filter(([q]) => labs[c.id][q]).length + (wrongDone(labs[c.id].wrong) ? 1 : 0) : 0), 0);
 function setStatus(t) { $("saved").textContent = t; }
 function persistLocal() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
 function payload() {
-  return { study: STUDY, version: 2, rater: state.rater, exported_at: new Date().toISOString(),
+  return { study: STUDY, version: 3, rater: state.rater, exported_at: new Date().toISOString(),
            labelled: countDone(state.labels), total: TOTAL, answers: countAnswers(state.labels), labels: state.labels };
 }
 
@@ -310,7 +318,15 @@ function build() {
     slow.addEventListener("click", () => { const on = v.playbackRate === 1; v.playbackRate = on ? 0.5 : 1; slow.setAttribute("aria-pressed", String(on)); });
     const again = document.createElement("button"); again.type = "button"; again.textContent = "From the start";
     again.addEventListener("click", () => { v.currentTime = 0; v.play().catch(() => {}); pp.textContent = "Pause"; });
-    ctl.append(pp, slow, again);
+    const step = d => { v.pause(); pp.textContent = "Play"; v.currentTime = Math.min(Math.max(0, v.currentTime + d / 15), (v.duration || 6.67) - 0.01); };
+    const back = document.createElement("button"); back.type = "button"; back.textContent = "◀"; back.setAttribute("aria-label", "One frame back");
+    back.addEventListener("click", () => step(-1));
+    const fwd = document.createElement("button"); fwd.type = "button"; fwd.textContent = "▶"; fwd.setAttribute("aria-label", "One frame forward");
+    fwd.addEventListener("click", () => step(1));
+    const clock = document.createElement("span"); clock.textContent = "t = 0.00 s";
+    v.addEventListener("timeupdate", () => { clock.textContent = `t = ${v.currentTime.toFixed(2)} s`; });
+    v.addEventListener("seeked", () => { clock.textContent = `t = ${v.currentTime.toFixed(2)} s`; });
+    ctl.append(pp, slow, again, back, fwd, clock);
     vid.append(v, ctl);
     seen.observe(v);
 
@@ -335,6 +351,35 @@ function build() {
       });
       blk.append(l, ch); qs.append(blk);
     });
+    const wb = document.createElement("div"); wb.className = "qblock";
+    const wl = document.createElement("span"); wl.className = "label"; wl.textContent = "5 · When does it go wrong?";
+    const wch = document.createElement("div"); wch.className = "choices"; wch.setAttribute("role", "group"); wch.setAttribute("aria-label", "When does it go wrong?");
+    const wm = document.createElement("span"); wm.className = "mark"; wm.id = "mark-" + c.id;
+    const guard = () => {
+      if (started) return true;
+      $("whomsg").textContent = "Type your first name and click Start before answering."; $("rater").focus(); window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    };
+    const setW = w => { state.labels[c.id].wrong = w; persistLocal(); paint(); scheduleSave(); };
+    const now = () => Math.round(v.currentTime * 100) / 100;
+    [["start", "Start: now", "close"], ["end", "End: now", "close"], ["toend", "…until the end of the clip", "close"],
+     ["NONE", "Nothing goes wrong", "yes"], ["UNSURE", "Unsure", "unsure"], ["clear", "Clear", "still"]].forEach(([k, text, cls]) => {
+      const b = document.createElement("button"); b.type = "button"; b.dataset.c = cls; b.textContent = text; b.id = `w-${c.id}-${k}`;
+      b.addEventListener("click", () => {
+        if (!guard()) return;
+        const w = state.labels[c.id].wrong;
+        if (k === "start") setW({ start: now(), end: null });
+        else if (k === "end" || k === "toend") {
+          if (!w || typeof w !== "object") { wm.textContent = "Mark the start first."; return; }
+          const e = k === "toend" ? (Number.isFinite(v.duration) ? Math.round(v.duration * 100) / 100 : 6.67) : now();
+          if (e < w.start) { wm.textContent = "The end is before the start (the clip looped?): mark both within one pass."; return; }
+          setW({ start: w.start, end: e });
+        } else if (k === "clear") setW(null);
+        else setW(w === k ? null : k);
+      });
+      wch.append(b);
+    });
+    wb.append(wl, wch, wm); qs.append(wb);
     sec.append(vid, qs); root.append(sec);
   });
 }
@@ -344,7 +389,17 @@ function paint() {
   CLIPS.forEach(c => {
     const a = state.labels[c.id];
     QUESTIONS.forEach(([q, , opts]) => opts.forEach(([val]) => $(`b-${c.id}-${q}-${val}`).setAttribute("aria-pressed", String(a[q] === val))));
-    const n = QUESTIONS.filter(([q]) => a[q]).length;
+    const w = a.wrong;
+    $(`w-${c.id}-NONE`).setAttribute("aria-pressed", String(w === "NONE"));
+    $(`w-${c.id}-UNSURE`).setAttribute("aria-pressed", String(w === "UNSURE"));
+    const isIv = !!w && typeof w === "object";
+    $(`w-${c.id}-start`).setAttribute("aria-pressed", String(isIv));
+    $(`w-${c.id}-end`).setAttribute("aria-pressed", String(isIv && Number.isFinite(w.end)));
+    const mk = $("mark-" + c.id);
+    mk.className = "mark" + (isIv ? " set" : "");
+    mk.textContent = isIv ? (Number.isFinite(w.end) ? `Goes wrong from ${w.start.toFixed(2)} s to ${w.end.toFixed(2)} s` : `Start marked at ${w.start.toFixed(2)} s: now mark the end`)
+      : (w === "NONE" ? "Nothing goes wrong" : (w === "UNSURE" ? "Unsure" : ""));
+    const n = QUESTIONS.filter(([q]) => a[q]).length + (wrongDone(w) ? 1 : 0);
     $("st-" + c.id).textContent = `${n} / ${QN} answered`;
     const sec = $("ep-" + c.id);
     sec.classList.toggle("done", n === QN);
