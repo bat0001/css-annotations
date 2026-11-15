@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gripper Gesture Study</title>
+<style>
+:root { --bg:#f7f8f6; --card:#ffffff; --ink:#1c1f1d; --mute:#5f6863; --line:#d9ddd9; --accent:#2f6f5e; --bad:#b0412e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141716; --card:#1d2120; --ink:#e8ece9;
+  --mute:#9aa39e; --line:#343b38; --accent:#6fb8a3; --bad:#e07a66; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#141716; --card:#1d2120; --ink:#e8ece9; --mute:#9aa39e; --line:#343b38; --accent:#6fb8a3;
+  --bad:#e07a66; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:840px; margin:0 auto; padding-block:16px; padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size:22px; margin:6px 0 2px; } h2 { font-size:17px; margin:0 0 6px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:12px 0; }
+.mute { color:var(--mute); font-size:13px; }
+.row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+.between { justify-content:space-between; align-items:center; }
+video { width:384px; max-width:100%; aspect-ratio:1; background:#000; border-radius:8px; }
+.side { flex:1; min-width:240px; }
+button { font:inherit; padding:6px 12px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; }
+button:hover, button:focus-visible { border-color:var(--accent); outline:none; }
+button.on { background:var(--accent); color:var(--card); border-color:var(--accent); }
+button.on.bad { background:var(--bad); border-color:var(--bad); }
+button:disabled { opacity:.45; cursor:default; }
+.btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center; }
+.why label { display:block; margin:3px 0; }
+.why.off { opacity:.45; }
+.task { font-weight:600; }
+.ref { margin-top:10px; padding:10px 12px; border-left:3px solid var(--accent); background:var(--bg); display:none; }
+.dots { display:flex; flex-wrap:wrap; gap:4px; margin-top:10px; }
+.dot { min-width:26px; height:24px; padding:0 3px; border-radius:4px; font-size:10px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); cursor:pointer; }
+.dot.done { background:var(--accent); color:var(--card); border-color:var(--accent); } .dot.cur { outline:2px solid var(--ink); }
+input[type=text] { font:inherit; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+body.locked #work { opacity:.4; pointer-events:none; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1>Gripper Gesture Study</h1>
+  <p class="mute">Short clips of a robot arm (WidowX) moving a red drawer. You judge how the gripper moves, not whether the task succeeds.</p>
+
+  <div class="card">
+    <h2>What to judge</h2>
+    <p>Each clip shows one moment where the drawer moves. You are told what the robot was asked to do (open or close the
+    drawer) and when the drawer moves. Watch the <strong>gripper</strong> during that window and answer:</p>
+    <ul>
+      <li><strong>Clean</strong>: it moves smoothly with the drawer, in the direction the task asks.</li>
+      <li><strong>Messy</strong>: something is clearly off. Tick what you see: it <em>twists</em> (turns around its own axis),
+      <em>slips</em> (slides along the handle, comes off it, drifts sideways or up and down), <em>jerks</em> (stop-and-go,
+      shaking), or pushes or pulls the <em>wrong way</em> for the task.</li>
+      <li><strong>Can't tell</strong>: the gripper is hidden or the clip is too unclear.</li>
+    </ul>
+    <p class="mute">Clips loop and play at half speed; you can change the speed. Start with 6 practice clips that show the
+    expected answer, then the study clips. Everything is saved as you go; you can stop and come back with the same name.</p>
+    <div class="btns">Your first name: <input type="text" id="rater" autocomplete="given-name"> <button id="start">Start</button></div>
+    <p class="mute" id="whomsg"></p>
+  </div>
+
+  <div id="work">
+    <div class="card">
+      <div class="row between"><h2 id="title">Clip</h2><span class="mute" id="progress"></span></div>
+      <div class="btns" style="margin:0 0 8px"><button id="modeCal">Practice (6)</button><button id="modeStudy">Study clips</button></div>
+      <div class="row">
+        <video id="vid" muted loop playsinline preload="auto"></video>
+        <div class="side">
+          <p class="task" id="task"></p>
+          <p>The drawer moves between <strong id="win"></strong> in this clip.</p>
+          <div class="btns"><span class="mute">speed</span>
+            <button data-rate="0.25">¼×</button><button data-rate="0.5" class="on">½×</button><button data-rate="1">1×</button>
+            <span class="mute" id="time"></span></div>
+          <div class="btns">
+            <button data-a="clean">Clean</button><button data-a="messy">Messy</button><button data-a="cant">Can't tell</button>
+          </div>
+          <div class="why off" id="why" style="margin-top:8px">
+            <label><input type="checkbox" value="twist"> twists</label>
+            <label><input type="checkbox" value="slip"> slips, comes off the handle, drifts</label>
+            <label><input type="checkbox" value="jerks"> jerks</label>
+            <label><input type="checkbox" value="direction"> pushes or pulls the wrong way for the task</label>
+          </div>
+          <p class="mute" id="need"></p>
+          <div class="ref" id="ref"></div>
+        </div>
+      </div>
+      <div class="row between" style="margin-top:12px"><button id="prev">← Previous</button><button id="next">Next →</button></div>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="card">
+      <span class="mute" id="saved">Not signed in</span>
+      <div class="btns"><button id="dl">Download my answers (backup)</button></div>
+    </div>
+  </div>
+  <p class="mute">Clips: SOAR dataset (UC Berkeley, public release), re-encoded for the browser.</p>
+</main>
+<script>
+const ITEMS = [{"id": "G001", "url": "clips/G001.mp4", "task": "open", "w0": 0.33, "w1": 1.47}, {"id": "G002", "url": "clips/G002.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G003", "url": "clips/G003.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G004", "url": "clips/G004.mp4", "task": "open", "w0": 0.33, "w1": 1.07}, {"id": "G005", "url": "clips/G005.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G006", "url": "clips/G006.mp4", "task": "open", "w0": 0.33, "w1": 1.2}, {"id": "G007", "url": "clips/G007.mp4", "task": "open", "w0": 0.0, "w1": 0.2}, {"id": "G008", "url": "clips/G008.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G009", "url": "clips/G009.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G010", "url": "clips/G010.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G011", "url": "clips/G011.mp4", "task": "open", "w0": 0.33, "w1": 1.0}, {"id": "G012", "url": "clips/G012.mp4", "task": "open", "w0": 0.33, "w1": 1.67}, {"id": "G013", "url": "clips/G013.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G014", "url": "clips/G014.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G015", "url": "clips/G015.mp4", "task": "close", "w0": 0.33, "w1": 0.73}, {"id": "G016", "url": "clips/G016.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G017", "url": "clips/G017.mp4", "task": "close", "w0": 0.33, "w1": 0.93}, {"id": "G018", "url": "clips/G018.mp4", "task": "open", "w0": 0.13, "w1": 0.4}, {"id": "G019", "url": "clips/G019.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G020", "url": "clips/G020.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G021", "url": "clips/G021.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G022", "url": "clips/G022.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G023", "url": "clips/G023.mp4", "task": "open", "w0": 0.0, "w1": 0.27}, {"id": "G024", "url": "clips/G024.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G025", "url": "clips/G025.mp4", "task": "open", "w0": 0.33, "w1": 1.47}, {"id": "G026", "url": "clips/G026.mp4", "task": "open", "w0": 0.33, "w1": 1.2}, {"id": "G027", "url": "clips/G027.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G028", "url": "clips/G028.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G029", "url": "clips/G029.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G030", "url": "clips/G030.mp4", "task": "open", "w0": 0.33, "w1": 1.6}, {"id": "G031", "url": "clips/G031.mp4", "task": "open", "w0": 0.33, "w1": 1.33}, {"id": "G032", "url": "clips/G032.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G033", "url": "clips/G033.mp4", "task": "open", "w0": 0.33, "w1": 1.0}, {"id": "G034", "url": "clips/G034.mp4", "task": "open", "w0": 0.33, "w1": 1.67}, {"id": "G035", "url": "clips/G035.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G036", "url": "clips/G036.mp4", "task": "close", "w0": 0.33, "w1": 1.6}, {"id": "G037", "url": "clips/G037.mp4", "task": "open", "w0": 0.33, "w1": 1.47}, {"id": "G038", "url": "clips/G038.mp4", "task": "open", "w0": 0.33, "w1": 0.8}, {"id": "G039", "url": "clips/G039.mp4", "task": "close", "w0": 0.33, "w1": 0.6}, {"id": "G040", "url": "clips/G040.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G041", "url": "clips/G041.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G042", "url": "clips/G042.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G043", "url": "clips/G043.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G044", "url": "clips/G044.mp4", "task": "close", "w0": 0.33, "w1": 1.0}, {"id": "G045", "url": "clips/G045.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G046", "url": "clips/G046.mp4", "task": "open", "w0": 0.33, "w1": 0.73}, {"id": "G047", "url": "clips/G047.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G048", "url": "clips/G048.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G049", "url": "clips/G049.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G050", "url": "clips/G050.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G051", "url": "clips/G051.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G052", "url": "clips/G052.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G053", "url": "clips/G053.mp4", "task": "close", "w0": 0.33, "w1": 0.6}, {"id": "G054", "url": "clips/G054.mp4", "task": "close", "w0": 0.33, "w1": 0.93}, {"id": "G055", "url": "clips/G055.mp4", "task": "open", "w0": 0.13, "w1": 0.4}, {"id": "G056", "url": "clips/G056.mp4", "task": "close", "w0": 0.33, "w1": 1.0}, {"id": "G057", "url": "clips/G057.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G058", "url": "clips/G058.mp4", "task": "open", "w0": 0.0, "w1": 0.27}, {"id": "G059", "url": "clips/G059.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G060", "url": "clips/G060.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G061", "url": "clips/G061.mp4", "task": "open", "w0": 0.33, "w1": 0.73}, {"id": "G062", "url": "clips/G062.mp4", "task": "open", "w0": 0.33, "w1": 1.07}, {"id": "G063", "url": "clips/G063.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G064", "url": "clips/G064.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G065", "url": "clips/G065.mp4", "task": "close", "w0": 0.27, "w1": 0.67}, {"id": "G066", "url": "clips/G066.mp4", "task": "close", "w0": 0.33, "w1": 1.0}, {"id": "G067", "url": "clips/G067.mp4", "task": "close", "w0": 0.33, "w1": 1.0}, {"id": "G068", "url": "clips/G068.mp4", "task": "open", "w0": 0.33, "w1": 0.8}, {"id": "G069", "url": "clips/G069.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G070", "url": "clips/G070.mp4", "task": "close", "w0": 0.33, "w1": 1.0}, {"id": "G071", "url": "clips/G071.mp4", "task": "open", "w0": 0.0, "w1": 0.27}, {"id": "G072", "url": "clips/G072.mp4", "task": "open", "w0": 0.33, "w1": 1.47}, {"id": "G073", "url": "clips/G073.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G074", "url": "clips/G074.mp4", "task": "close", "w0": 0.33, "w1": 0.93}, {"id": "G075", "url": "clips/G075.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G076", "url": "clips/G076.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G077", "url": "clips/G077.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G078", "url": "clips/G078.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G079", "url": "clips/G079.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G080", "url": "clips/G080.mp4", "task": "open", "w0": 0.33, "w1": 0.8}, {"id": "G081", "url": "clips/G081.mp4", "task": "open", "w0": 0.33, "w1": 1.0}, {"id": "G082", "url": "clips/G082.mp4", "task": "open", "w0": 0.0, "w1": 0.33}, {"id": "G083", "url": "clips/G083.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G084", "url": "clips/G084.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G085", "url": "clips/G085.mp4", "task": "close", "w0": 0.33, "w1": 0.53}, {"id": "G086", "url": "clips/G086.mp4", "task": "close", "w0": 0.33, "w1": 0.6}, {"id": "G087", "url": "clips/G087.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G088", "url": "clips/G088.mp4", "task": "close", "w0": 0.33, "w1": 1.2}, {"id": "G089", "url": "clips/G089.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G090", "url": "clips/G090.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G091", "url": "clips/G091.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G092", "url": "clips/G092.mp4", "task": "open", "w0": 0.33, "w1": 1.4}, {"id": "G093", "url": "clips/G093.mp4", "task": "close", "w0": 0.33, "w1": 1.13}, {"id": "G094", "url": "clips/G094.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G095", "url": "clips/G095.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G096", "url": "clips/G096.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G097", "url": "clips/G097.mp4", "task": "open", "w0": 0.33, "w1": 1.13}, {"id": "G098", "url": "clips/G098.mp4", "task": "open", "w0": 0.33, "w1": 2.0}, {"id": "G099", "url": "clips/G099.mp4", "task": "open", "w0": 0.33, "w1": 0.67}, {"id": "G100", "url": "clips/G100.mp4", "task": "open", "w0": 0.33, "w1": 0.53}, {"id": "G101", "url": "clips/G101.mp4", "task": "close", "w0": 0.33, "w1": 0.53}, {"id": "G102", "url": "clips/G102.mp4", "task": "open", "w0": 0.33, "w1": 0.8}, {"id": "G103", "url": "clips/G103.mp4", "task": "open", "w0": 0.33, "w1": 1.27}, {"id": "G104", "url": "clips/G104.mp4", "task": "open", "w0": 0.33, "w1": 0.8}, {"id": "G105", "url": "clips/G105.mp4", "task": "close", "w0": 0.33, "w1": 1.13}, {"id": "G106", "url": "clips/G106.mp4", "task": "open", "w0": 0.33, "w1": 1.8}, {"id": "G107", "url": "clips/G107.mp4", "task": "open", "w0": 0.33, "w1": 1.4}, {"id": "G108", "url": "clips/G108.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G109", "url": "clips/G109.mp4", "task": "close", "w0": 0.33, "w1": 1.6}, {"id": "G110", "url": "clips/G110.mp4", "task": "close", "w0": 0.33, "w1": 0.93}, {"id": "G111", "url": "clips/G111.mp4", "task": "open", "w0": 0.33, "w1": 0.6}, {"id": "G112", "url": "clips/G112.mp4", "task": "close", "w0": 0.33, "w1": 1.13}, {"id": "G113", "url": "clips/G113.mp4", "task": "open", "w0": 0.33, "w1": 1.0}, {"id": "G114", "url": "clips/G114.mp4", "task": "open", "w0": 0.33, "w1": 0.87}, {"id": "G115", "url": "clips/G115.mp4", "task": "open", "w0": 0.33, "w1": 1.2}, {"id": "G116", "url": "clips/G116.mp4", "task": "open", "w0": 0.33, "w1": 0.93}, {"id": "G117", "url": "clips/G117.mp4", "task": "open", "w0": 0.33, "w1": 0.6}], CALIB = [{"id": "C1", "url": "calib/C1.mp4", "task": "open", "w0": 0.33, "w1": 0.93, "ref": {"a": "clean", "why": []}, "explain": "The gripper stays on the handle and pulls straight out with it; its orientation does not change."}, {"id": "C2", "url": "calib/C2.mp4", "task": "open", "w0": 0.33, "w1": 0.93, "ref": {"a": "messy", "why": ["twist"]}, "explain": "While the drawer opens, the wrist turns: the fingers point in a clearly different direction at the end."}, {"id": "C3", "url": "calib/C3.mp4", "task": "close", "w0": 0.33, "w1": 1.2, "ref": {"a": "clean", "why": []}, "explain": "The task is to close the drawer, and the gripper pushes it in steadily: closing is the right direction here."}, {"id": "C4", "url": "calib/C4.mp4", "task": "open", "w0": 0.33, "w1": 0.67, "ref": {"a": "messy", "why": ["twist", "slip"]}, "explain": "The drawer comes out, but the gripper swings round and comes off the handle."}, {"id": "C5", "url": "calib/C5.mp4", "task": "open", "w0": 0.33, "w1": 0.8, "ref": {"a": "messy", "why": ["direction"]}, "explain": "The task is to open the drawer, but the gripper pushes it in."}, {"id": "C6", "url": "calib/C6.mp4", "task": "open", "w0": 0.33, "w1": 1.33, "ref": {"a": "clean", "why": []}, "explain": "The arm draws the drawer out smoothly, the gripper keeping the same hold on the handle."}], SAVE_URL = "https://script.google.com/macros/s/AKfycbwnWzJiA4HKYDikpUBMrWZy1RCon9AYIWNtGiqIZ_fshvTUQzLFRk58RaST18aQGtWS/exec", STUDY = "CRS-V2-SOAR-GESTURE", FPS = 15;
+const KEY = "crs-v2soar-gesture-v1", REASONS = ["twist", "slip", "jerks", "direction"];
+const $ = id => document.getElementById(id), vid = $("vid");
+const norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
+const valid = a => a && ["clean", "messy", "cant"].includes(a.a);
+const complete = a => valid(a) && (a.a !== "messy" || (a.why || []).length > 0);
+let state = { rater: "", labels: {}, calib: {}, mode: "cal", cur: 0, curCal: 0 };
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) state = Object.assign(state, s); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+const done = () => ITEMS.filter(x => complete(state.labels[x.id])).length;
+const payload = () => ({ study: STUDY, version: 1, rater: state.rater, exported_at: new Date().toISOString(),
+  labelled: done(), total: ITEMS.length, labels: state.labels, calib: state.calib });
+let rate = 0.5, timer = null, inflight = false, dirty = false;
+function status(t) { $("saved").textContent = t; }
+function schedule() { persist(); dirty = true; if (!SAVE_URL) { status("Saved in this browser (online saving not configured)"); return; }
+  status("Saving…"); clearTimeout(timer); timer = setTimeout(saveNow, 1200); }
+async function saveNow() {
+  if (!SAVE_URL || !state.rater || inflight || !dirty) return;
+  inflight = true; dirty = false; let failed = false;
+  try { const r = await fetch(SAVE_URL, { method: "POST", body: JSON.stringify(payload()) }); const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "refused"); status(`Saved for "${state.rater}" · ${done()} / ${ITEMS.length} study clips`);
+  } catch (e) { dirty = true; failed = true; status("Could not save online yet: retrying. Your answers are kept in this browser."); }
+  finally { inflight = false; if (dirty) { clearTimeout(timer); timer = setTimeout(saveNow, failed ? 8000 : 1200); } }
+}
+window.addEventListener("pagehide", () => { if (SAVE_URL && state.rater && dirty && navigator.sendBeacon)
+  navigator.sendBeacon(SAVE_URL, new Blob([JSON.stringify(payload())], { type: "text/plain" })); });
+
+async function start() {
+  const name = norm($("rater").value);
+  if (!name) { $("whomsg").textContent = "Please type your first name first."; return; }
+  if (state.rater && state.rater !== name) { state.labels = {}; state.calib = {}; state.cur = 0; state.curCal = 0; state.mode = "cal"; }
+  state.rater = name; $("rater").value = name; $("whomsg").textContent = "Looking for answers you may already have saved…";
+  if (SAVE_URL) {
+    try { const r = await fetch(SAVE_URL + "?study=" + encodeURIComponent(STUDY) + "&name=" + encodeURIComponent(name)); const j = await r.json();
+      if (j.ok && j.found && j.found.labels) {
+        const n = Object.values(j.found.labels).filter(complete).length;
+        if (n >= done()) { state.labels = j.found.labels; state.calib = j.found.calib || state.calib; }
+        $("whomsg").textContent = `Welcome back, ${name}: ${done()} study clips restored.`;
+      } else $("whomsg").textContent = `Let's go, ${name}. Everything is saved as you go.`;
+    } catch (e) { $("whomsg").textContent = `Let's go, ${name}. The server is not answering: your answers stay in this browser and are sent when it does.`; }
+  } else $("whomsg").textContent = `Let's go, ${name}. (Online saving is not configured: download your answers at the end.)`;
+  document.body.classList.remove("locked"); persist(); render();
+  status(SAVE_URL ? `Signed in as "${name}"` : "Saved in this browser");
+}
+$("start").onclick = start; $("rater").value = state.rater;
+$("rater").addEventListener("keydown", e => { if (e.key === "Enter") start(); });
+
+function list() { return state.mode === "cal" ? CALIB : ITEMS; }
+function store() { return state.mode === "cal" ? state.calib : state.labels; }
+function idx() { return state.mode === "cal" ? state.curCal : state.cur; }
+function setIdx(i) { if (state.mode === "cal") state.curCal = i; else state.cur = i; }
+function render() {
+  const L = list(), i = idx(), it = L[i], a = store()[it.id] || {};
+  $("title").textContent = (state.mode === "cal" ? "Practice " : "Clip ") + it.id;
+  $("task").textContent = `The robot was asked to ${it.task} the drawer.`;
+  $("win").textContent = `${it.w0.toFixed(1)} s and ${it.w1.toFixed(1)} s`;
+  if (vid.dataset.src !== it.url) { vid.dataset.src = it.url; vid.src = it.url; }
+  vid.playbackRate = rate; vid.play().catch(() => {});
+  document.querySelectorAll("[data-a]").forEach(b => { b.classList.toggle("on", b.dataset.a === a.a); b.classList.toggle("bad", b.dataset.a === "messy"); });
+  $("why").classList.toggle("off", a.a !== "messy");
+  $("why").querySelectorAll("input").forEach(c => { c.checked = (a.why || []).includes(c.value); c.disabled = a.a !== "messy"; });
+  $("need").textContent = a.a === "messy" && !(a.why || []).length ? "Tick at least one thing you see." : "";
+  const ref = $("ref");
+  if (state.mode === "cal" && valid(a)) {
+    ref.style.display = "block";
+    ref.innerHTML = `<strong>Expected: ${it.ref.a}${it.ref.why.length ? " (" + it.ref.why.join(", ") + ")" : ""}.</strong> ${it.explain}`;
+  } else ref.style.display = "none";
+  const n = L.filter(x => complete(store()[x.id])).length;
+  $("progress").textContent = state.mode === "cal" ? `practice ${i + 1} / ${L.length}` : `${i + 1} / ${L.length} · ${n} done`;
+  $("modeCal").classList.toggle("on", state.mode === "cal"); $("modeStudy").classList.toggle("on", state.mode === "study");
+  const d = $("dots"); d.innerHTML = "";
+  L.forEach((x, j) => { const e = document.createElement("div"); e.className = "dot" + (complete(store()[x.id]) ? " done" : "") + (j === i ? " cur" : "");
+    e.textContent = j + 1; e.onclick = () => { setIdx(j); persist(); render(); }; d.appendChild(e); });
+  $("prev").disabled = i === 0;
+  $("next").textContent = state.mode === "cal" && i === L.length - 1 ? "Start the study clips →" : "Next →";
+  $("next").disabled = state.mode === "study" && i === L.length - 1;
+}
+(function tick() { $("time").textContent = vid.currentTime ? vid.currentTime.toFixed(1) + " s" : ""; requestAnimationFrame(tick); })();
+document.querySelectorAll("[data-rate]").forEach(b => b.onclick = () => { rate = +b.dataset.rate; vid.playbackRate = rate;
+  document.querySelectorAll("[data-rate]").forEach(x => x.classList.toggle("on", x === b)); });
+document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { const it = list()[idx()], s = store(), prev = s[it.id] || {};
+  s[it.id] = { a: b.dataset.a, why: b.dataset.a === "messy" ? (prev.why || []) : [], t: new Date().toISOString() }; schedule(); render(); });
+$("why").querySelectorAll("input").forEach(c => c.onchange = () => { const it = list()[idx()], s = store();
+  s[it.id].why = [...$("why").querySelectorAll("input:checked")].map(x => x.value).filter(v => REASONS.includes(v)); schedule(); render(); });
+$("prev").onclick = () => { setIdx(idx() - 1); persist(); render(); };
+$("next").onclick = () => { if (state.mode === "cal" && idx() === CALIB.length - 1) { state.mode = "study"; } else setIdx(idx() + 1); persist(); render(); };
+$("modeCal").onclick = () => { state.mode = "cal"; persist(); render(); };
+$("modeStudy").onclick = () => { state.mode = "study"; persist(); render(); };
+$("dl").onclick = () => { const blob = new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `gesture-${state.rater || "anon"}.json`; a.click(); };
+if (state.rater) { document.body.classList.remove("locked"); status(`Signed in as "${state.rater}" (this browser)`); }
+render();
+</script>
+</body>
+</html>
