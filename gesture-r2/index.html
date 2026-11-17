@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gripper Gesture, Round 2</title>
+<style>
+:root { --bg:#f7f8f6; --card:#ffffff; --ink:#1c1f1d; --mute:#5f6863; --line:#d9ddd9; --accent:#2f6f5e; --bad:#b0412e;
+  --win:#d9ece6; --seg:#e9c46a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141716; --card:#1d2120; --ink:#e8ece9;
+  --mute:#9aa39e; --line:#343b38; --accent:#6fb8a3; --bad:#e07a66; --win:#23403a; --seg:#b8923d; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#141716; --card:#1d2120; --ink:#e8ece9; --mute:#9aa39e; --line:#343b38; --accent:#6fb8a3;
+  --bad:#e07a66; --win:#23403a; --seg:#b8923d; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:860px; margin:0 auto; padding-block:16px; padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size:22px; margin:6px 0 2px; } h2 { font-size:17px; margin:0 0 6px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:12px 0; }
+.mute { color:var(--mute); font-size:13px; }
+.row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; } .between { justify-content:space-between; align-items:center; }
+video { width:384px; max-width:100%; aspect-ratio:1; background:#000; border-radius:8px; }
+.side { flex:1; min-width:250px; }
+button { font:inherit; padding:5px 11px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; }
+button:hover, button:focus-visible { border-color:var(--accent); outline:none; }
+button.on { background:var(--accent); color:var(--card); border-color:var(--accent); }
+button:disabled { opacity:.45; cursor:default; }
+.btns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
+.bar { position:relative; height:22px; border:1px solid var(--line); border-radius:5px; margin-top:8px; max-width:384px; cursor:pointer; overflow:hidden; }
+.bar .w { position:absolute; top:0; bottom:0; background:var(--win); }
+.bar .s { position:absolute; top:5px; bottom:5px; background:var(--seg); opacity:.85; }
+.bar .h { position:absolute; top:0; bottom:0; width:2px; background:var(--ink); }
+.cats label { display:block; margin:2px 0; }
+.sub { margin-left:22px; } .sub.off { opacity:.4; }
+ul.segs { margin:6px 0; padding-left:18px; } ul.segs li { margin:2px 0; }
+textarea { width:100%; min-height:70px; font:inherit; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); padding:6px; }
+input[type=text] { font:inherit; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+.dots { display:flex; flex-wrap:wrap; gap:4px; margin-top:10px; }
+.dot { min-width:26px; height:24px; padding:0 3px; border-radius:4px; font-size:10px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); cursor:pointer; }
+.dot.done { background:var(--accent); color:var(--card); border-color:var(--accent); } .dot.cur { outline:2px solid var(--ink); }
+body.locked #work { opacity:.4; pointer-events:none; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1>Gripper Gesture, Round 2</h1>
+  <p class="mute">The clips you could not label with one answer. Describe them over time instead.</p>
+  <div class="card">
+    <h2>What to do</h2>
+    <p>For each clip, mark the <strong>moments</strong> that matter: pause at the start of a moment, click <strong>Start: now</strong>,
+    move to its end, click <strong>End: now</strong>, choose what the gripper does, and click <strong>Add</strong>. Add as many
+    moments as you need (for example: clean, then twists, then pushes). Then describe the clip in a sentence. If you still
+    cannot tell, tick <strong>Still can't tell</strong>.</p>
+    <p class="mute">The green band under the video is the window where the drawer moves. <strong>Whole episode</strong> shows the
+    full clip for context; times are kept consistent between the two views.</p>
+    <div class="btns">Your first name: <input type="text" id="rater" autocomplete="given-name"> <button id="start">Start</button></div>
+    <p class="mute" id="whomsg"></p>
+  </div>
+  <div id="work">
+    <div class="card">
+      <div class="row between"><h2 id="title">Clip</h2><span class="mute" id="progress"></span></div>
+      <div class="row">
+        <div>
+          <video id="vid" muted loop playsinline preload="auto"></video>
+          <div class="bar" id="bar"></div>
+          <div class="btns"><button id="vEx" class="on">This clip</button><button id="vEp">Whole episode</button>
+            <span class="mute">speed</span><button data-rate="0.25">¼×</button><button data-rate="0.5" class="on">½×</button><button data-rate="1">1×</button></div>
+          <div class="btns"><button id="play">Pause</button><button id="back">◀</button><button id="fwd">▶</button><span class="mute" id="time"></span></div>
+        </div>
+        <div class="side">
+          <p><strong id="task"></strong></p>
+          <div class="btns"><button id="sNow">Start: now</button><button id="eNow">End: now</button><span class="mute" id="pending"></span></div>
+          <div class="cats" id="cats" style="margin-top:6px">
+            <label><input type="radio" name="cat" value="clean"> moves cleanly with the drawer</label>
+            <label><input type="radio" name="cat" value="twist"> twists</label>
+            <label><input type="radio" name="cat" value="slip"> slips, comes off the handle, drifts</label>
+            <label><input type="radio" name="cat" value="jerks"> jerks</label>
+            <label><input type="radio" name="cat" value="wrongway"> pushes or pulls the drawer the wrong way for the task</label>
+            <div class="sub off" id="sub">
+              <label><input type="radio" name="when" value="before_grasp"> before grasping the handle</label>
+              <label><input type="radio" name="when" value="holding"> while holding it</label>
+              <label><input type="radio" name="when" value="during_twist"> during a twist</label>
+            </div>
+            <label><input type="radio" name="cat" value="hidden"> nothing visible (gripper hidden)</label>
+          </div>
+          <div class="btns"><button id="add">Add this moment</button></div>
+          <ul class="segs" id="segs"></ul>
+          <label class="mute"><input type="checkbox" id="still"> Still can't tell</label>
+          <textarea id="text" placeholder="In your words: what does the gripper do?"></textarea>
+        </div>
+      </div>
+      <div class="row between" style="margin-top:12px"><button id="prev">← Previous</button><button id="next">Next →</button></div>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="card"><span class="mute" id="saved">Not signed in</span>
+      <div class="btns"><button id="dl">Download my answers (backup)</button></div></div>
+  </div>
+  <p class="mute">Clips: SOAR dataset (UC Berkeley, public release), re-encoded for the browser.</p>
+</main>
+<script>
+const ITEMS = [{"id": "R01", "url": "clips/R01.mp4", "full": "full/R01.mp4", "task": "open", "a": 16, "b": 28, "a0": 11, "b0": 33}, {"id": "R02", "url": "clips/R02.mp4", "full": "full/R02.mp4", "task": "open", "a": 69, "b": 79, "a0": 64, "b0": 84}, {"id": "R03", "url": "clips/R03.mp4", "full": "full/R03.mp4", "task": "open", "a": 53, "b": 62, "a0": 48, "b0": 67}, {"id": "R04", "url": "clips/R04.mp4", "full": "full/R04.mp4", "task": "open", "a": 38, "b": 47, "a0": 33, "b0": 52}, {"id": "R05", "url": "clips/R05.mp4", "full": "full/R05.mp4", "task": "open", "a": 2, "b": 6, "a0": 0, "b0": 11}, {"id": "R06", "url": "clips/R06.mp4", "full": "full/R06.mp4", "task": "open", "a": 63, "b": 71, "a0": 58, "b0": 76}, {"id": "R07", "url": "clips/R07.mp4", "full": "full/R07.mp4", "task": "close", "a": 31, "b": 41, "a0": 26, "b0": 46}, {"id": "R08", "url": "clips/R08.mp4", "full": "full/R08.mp4", "task": "open", "a": 76, "b": 86, "a0": 71, "b0": 91}, {"id": "R09", "url": "clips/R09.mp4", "full": "full/R09.mp4", "task": "open", "a": 0, "b": 4, "a0": 0, "b0": 9}, {"id": "R10", "url": "clips/R10.mp4", "full": "full/R10.mp4", "task": "open", "a": 38, "b": 50, "a0": 33, "b0": 55}, {"id": "R11", "url": "clips/R11.mp4", "full": "full/R11.mp4", "task": "open", "a": 59, "b": 66, "a0": 54, "b0": 71}, {"id": "R12", "url": "clips/R12.mp4", "full": "full/R12.mp4", "task": "open", "a": 50, "b": 54, "a0": 45, "b0": 59}, {"id": "R13", "url": "clips/R13.mp4", "full": "full/R13.mp4", "task": "open", "a": 44, "b": 53, "a0": 39, "b0": 58}, {"id": "R14", "url": "clips/R14.mp4", "full": "full/R14.mp4", "task": "open", "a": 29, "b": 32, "a0": 24, "b0": 37}, {"id": "R15", "url": "clips/R15.mp4", "full": "full/R15.mp4", "task": "open", "a": 61, "b": 68, "a0": 56, "b0": 73}, {"id": "R16", "url": "clips/R16.mp4", "full": "full/R16.mp4", "task": "open", "a": 73, "b": 76, "a0": 68, "b0": 81}, {"id": "R17", "url": "clips/R17.mp4", "full": "full/R17.mp4", "task": "close", "a": 52, "b": 62, "a0": 47, "b0": 67}, {"id": "R18", "url": "clips/R18.mp4", "full": "full/R18.mp4", "task": "open", "a": 0, "b": 4, "a0": 0, "b0": 9}, {"id": "R19", "url": "clips/R19.mp4", "full": "full/R19.mp4", "task": "open", "a": 88, "b": 97, "a0": 83, "b0": 100}, {"id": "R20", "url": "clips/R20.mp4", "full": "full/R20.mp4", "task": "open", "a": 88, "b": 97, "a0": 83, "b0": 100}, {"id": "R21", "url": "clips/R21.mp4", "full": "full/R21.mp4", "task": "open", "a": 24, "b": 34, "a0": 19, "b0": 39}, {"id": "R22", "url": "clips/R22.mp4", "full": "full/R22.mp4", "task": "open", "a": 19, "b": 29, "a0": 14, "b0": 34}, {"id": "R23", "url": "clips/R23.mp4", "full": "full/R23.mp4", "task": "open", "a": 25, "b": 38, "a0": 20, "b0": 43}, {"id": "R24", "url": "clips/R24.mp4", "full": "full/R24.mp4", "task": "open", "a": 2, "b": 6, "a0": 0, "b0": 11}, {"id": "R25", "url": "clips/R25.mp4", "full": "full/R25.mp4", "task": "open", "a": 24, "b": 28, "a0": 19, "b0": 33}, {"id": "R26", "url": "clips/R26.mp4", "full": "full/R26.mp4", "task": "close", "a": 28, "b": 37, "a0": 23, "b0": 42}, {"id": "R27", "url": "clips/R27.mp4", "full": "full/R27.mp4", "task": "close", "a": 73, "b": 77, "a0": 68, "b0": 82}, {"id": "R28", "url": "clips/R28.mp4", "full": "full/R28.mp4", "task": "open", "a": 15, "b": 20, "a0": 10, "b0": 25}, {"id": "R29", "url": "clips/R29.mp4", "full": "full/R29.mp4", "task": "open", "a": 40, "b": 43, "a0": 35, "b0": 48}, {"id": "R30", "url": "clips/R30.mp4", "full": "full/R30.mp4", "task": "close", "a": 48, "b": 51, "a0": 43, "b0": 56}, {"id": "R31", "url": "clips/R31.mp4", "full": "full/R31.mp4", "task": "open", "a": 69, "b": 73, "a0": 64, "b0": 78}, {"id": "R32", "url": "clips/R32.mp4", "full": "full/R32.mp4", "task": "open", "a": 8, "b": 11, "a0": 3, "b0": 16}, {"id": "R33", "url": "clips/R33.mp4", "full": "full/R33.mp4", "task": "open", "a": 0, "b": 5, "a0": 0, "b0": 10}, {"id": "R34", "url": "clips/R34.mp4", "full": "full/R34.mp4", "task": "open", "a": 25, "b": 34, "a0": 20, "b0": 39}, {"id": "R35", "url": "clips/R35.mp4", "full": "full/R35.mp4", "task": "open", "a": 15, "b": 18, "a0": 10, "b0": 23}, {"id": "R36", "url": "clips/R36.mp4", "full": "full/R36.mp4", "task": "open", "a": 64, "b": 78, "a0": 59, "b0": 83}, {"id": "R37", "url": "clips/R37.mp4", "full": "full/R37.mp4", "task": "open", "a": 82, "b": 89, "a0": 77, "b0": 94}, {"id": "R38", "url": "clips/R38.mp4", "full": "full/R38.mp4", "task": "close", "a": 39, "b": 42, "a0": 34, "b0": 47}, {"id": "R39", "url": "clips/R39.mp4", "full": "full/R39.mp4", "task": "open", "a": 0, "b": 4, "a0": 0, "b0": 9}, {"id": "R40", "url": "clips/R40.mp4", "full": "full/R40.mp4", "task": "open", "a": 77, "b": 85, "a0": 72, "b0": 90}, {"id": "R41", "url": "clips/R41.mp4", "full": "full/R41.mp4", "task": "close", "a": 20, "b": 24, "a0": 15, "b0": 29}, {"id": "R42", "url": "clips/R42.mp4", "full": "full/R42.mp4", "task": "open", "a": 19, "b": 23, "a0": 14, "b0": 28}, {"id": "R43", "url": "clips/R43.mp4", "full": "full/R43.mp4", "task": "open", "a": 26, "b": 31, "a0": 21, "b0": 36}, {"id": "R44", "url": "clips/R44.mp4", "full": "full/R44.mp4", "task": "open", "a": 85, "b": 92, "a0": 80, "b0": 97}, {"id": "R45", "url": "clips/R45.mp4", "full": "full/R45.mp4", "task": "open", "a": 58, "b": 67, "a0": 53, "b0": 72}, {"id": "R46", "url": "clips/R46.mp4", "full": "full/R46.mp4", "task": "open", "a": 36, "b": 49, "a0": 31, "b0": 54}, {"id": "R47", "url": "clips/R47.mp4", "full": "full/R47.mp4", "task": "close", "a": 9, "b": 19, "a0": 4, "b0": 24}, {"id": "R48", "url": "clips/R48.mp4", "full": "full/R48.mp4", "task": "open", "a": 63, "b": 74, "a0": 58, "b0": 79}], SAVE_URL = "https://script.google.com/macros/s/AKfycbwnWzJiA4HKYDikpUBMrWZy1RCon9AYIWNtGiqIZ_fshvTUQzLFRk58RaST18aQGtWS/exec", STUDY = "CRS-V2-SOAR-GESTURE-R2", FPS = 15, T = 100;
+const KEY = "crs-v2soar-gesture-r2-v1", CATS = ["clean", "twist", "slip", "jerks", "wrongway", "hidden"], WHEN = ["before_grasp", "holding", "during_twist"];
+const NAMES = { clean: "moves cleanly", twist: "twists", slip: "slips / drifts", jerks: "jerks", wrongway: "wrong way", hidden: "nothing visible",
+  before_grasp: "before grasping", holding: "while holding", during_twist: "during a twist" };
+const $ = id => document.getElementById(id), vid = $("vid"), norm = s => String(s || "").trim().toLowerCase().slice(0, 40);
+const complete = a => !!a && (a.still_cant === true || (a.segments || []).length > 0);
+let st = { rater: "", labels: {}, cur: 0 }, view = "ex", rate = 0.5, pend = { s: null, e: null };
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) st = Object.assign(st, s); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+const done = () => ITEMS.filter(x => complete(st.labels[x.id])).length;
+const payload = () => ({ study: STUDY, version: 1, rater: st.rater, exported_at: new Date().toISOString(), labelled: done(), total: ITEMS.length, labels: st.labels });
+let timer = null, inflight = false, dirty = false;
+const status = t => { $("saved").textContent = t; };
+function schedule() { persist(); dirty = true; if (!SAVE_URL) { status("Saved in this browser (online saving not configured)"); return; }
+  status("Saving…"); clearTimeout(timer); timer = setTimeout(saveNow, 1200); }
+async function saveNow() { if (!SAVE_URL || !st.rater || inflight || !dirty) return; inflight = true; dirty = false; let failed = false;
+  try { const r = await fetch(SAVE_URL, { method: "POST", body: JSON.stringify(payload()) }); const j = await r.json(); if (!j.ok) throw new Error(j.error);
+    status(`Saved for "${st.rater}" · ${done()} / ${ITEMS.length}`); } catch (e) { dirty = true; failed = true; status("Could not save online yet: retrying. Kept in this browser."); }
+  finally { inflight = false; if (dirty) { clearTimeout(timer); timer = setTimeout(saveNow, failed ? 8000 : 1200); } } }
+window.addEventListener("pagehide", () => { if (SAVE_URL && st.rater && dirty && navigator.sendBeacon) navigator.sendBeacon(SAVE_URL, new Blob([JSON.stringify(payload())], { type: "text/plain" })); });
+async function start() { const name = norm($("rater").value); if (!name) { $("whomsg").textContent = "Please type your first name first."; return; }
+  if (st.rater && st.rater !== name) { st.labels = {}; st.cur = 0; } st.rater = name; $("rater").value = name;
+  if (SAVE_URL) { try { const r = await fetch(SAVE_URL + "?study=" + encodeURIComponent(STUDY) + "&name=" + encodeURIComponent(name)); const j = await r.json();
+      if (j.ok && j.found && j.found.labels) { const n = Object.values(j.found.labels).filter(complete).length; if (n >= done()) st.labels = j.found.labels;
+        $("whomsg").textContent = `Welcome back, ${name}: ${done()} clips restored.`; } else $("whomsg").textContent = `Let's go, ${name}. Saved as you go.`;
+    } catch (e) { $("whomsg").textContent = `Let's go, ${name}. The server is not answering: kept in this browser.`; } }
+  else $("whomsg").textContent = `Let's go, ${name}. (Online saving not configured: download your answers at the end.)`;
+  document.body.classList.remove("locked"); persist(); render(); }
+$("start").onclick = start; $("rater").value = st.rater; $("rater").addEventListener("keydown", e => { if (e.key === "Enter") start(); });
+const it = () => ITEMS[st.cur], lab = () => (st.labels[it().id] = st.labels[it().id] || { segments: [], text: "", still_cant: false });
+const frameNow = () => { const f = Math.floor(vid.currentTime * FPS + 1e-6); return view === "ex" ? Math.min(it().b0 - 1, it().a0 + f) : Math.min(T - 1, f); };
+const fmt = f => (view === "ex" ? (f - it().a0) / FPS : f / FPS).toFixed(1) + " s";
+function setVideo() { const u = view === "ex" ? it().url : it().full; if (vid.dataset.src !== u) { vid.dataset.src = u; vid.src = u; } vid.playbackRate = rate; vid.play().catch(() => {}); }
+function drawBar() { const bar = $("bar"); bar.innerHTML = ""; const lo = view === "ex" ? it().a0 : 0, hi = view === "ex" ? it().b0 : T, span = hi - lo;
+  const add = (c, a, b) => { const d = document.createElement("div"); d.className = c; d.style.left = (100 * (Math.max(a, lo) - lo) / span) + "%";
+    d.style.width = (100 * (Math.min(b, hi) - Math.max(a, lo)) / span) + "%"; bar.appendChild(d); };
+  add("w", it().a, it().b); (lab().segments || []).forEach(s => add("s", s.s, s.e + 1));
+  const h = document.createElement("div"); h.className = "h"; h.id = "head"; bar.appendChild(h); }
+function render() { const x = it(), a = lab();
+  $("title").textContent = "Clip " + x.id; $("task").textContent = `The robot was asked to ${x.task} the drawer.`;
+  setVideo(); drawBar(); pend = { s: null, e: null }; $("pending").textContent = "";
+  $("segs").innerHTML = ""; (a.segments || []).forEach((s, i) => { const li = document.createElement("li");
+    li.textContent = `${fmt(s.s)} – ${fmt(s.e)}: ${NAMES[s.cat]}${s.when ? " (" + NAMES[s.when] + ")" : ""} `;
+    const del = document.createElement("button"); del.textContent = "remove"; del.onclick = () => { a.segments.splice(i, 1); schedule(); render(); }; li.appendChild(del); $("segs").appendChild(li); });
+  $("still").checked = !!a.still_cant; $("text").value = a.text || "";
+  $("progress").textContent = `${st.cur + 1} / ${ITEMS.length} · ${done()} done`;
+  const d = $("dots"); d.innerHTML = ""; ITEMS.forEach((y, j) => { const e = document.createElement("div"); e.className = "dot" + (complete(st.labels[y.id]) ? " done" : "") + (j === st.cur ? " cur" : "");
+    e.textContent = j + 1; e.onclick = () => { st.cur = j; persist(); render(); }; d.appendChild(e); });
+  $("prev").disabled = st.cur === 0; $("next").disabled = st.cur === ITEMS.length - 1; $("vEx").classList.toggle("on", view === "ex"); $("vEp").classList.toggle("on", view === "ep"); }
+(function tick() { if (ITEMS.length && vid.currentTime !== undefined) { const f = frameNow(); $("time").textContent = fmt(f);
+  const h = $("head"); if (h) { const lo = view === "ex" ? it().a0 : 0, hi = view === "ex" ? it().b0 : T; h.style.left = (100 * (f - lo + 0.5) / (hi - lo)) + "%"; } }
+  requestAnimationFrame(tick); })();
+document.querySelectorAll("[data-rate]").forEach(b => b.onclick = () => { rate = +b.dataset.rate; vid.playbackRate = rate; document.querySelectorAll("[data-rate]").forEach(x => x.classList.toggle("on", x === b)); });
+$("vEx").onclick = () => { view = "ex"; render(); }; $("vEp").onclick = () => { view = "ep"; render(); };
+$("play").onclick = () => { if (vid.paused) { vid.play(); $("play").textContent = "Pause"; } else { vid.pause(); $("play").textContent = "Play"; } };
+const step = d => { vid.pause(); $("play").textContent = "Play"; const f = Math.floor(vid.currentTime * FPS + 1e-6) + d; vid.currentTime = Math.max(0, (f + 0.5) / FPS); };
+$("back").onclick = () => step(-1); $("fwd").onclick = () => step(1);
+$("bar").onclick = e => { const r = $("bar").getBoundingClientRect(); vid.currentTime = Math.max(0, Math.min(0.999, (e.clientX - r.left) / r.width)) * vid.duration; };
+const showPend = () => { $("pending").textContent = `${pend.s === null ? "start ?" : "start " + fmt(pend.s)} · ${pend.e === null ? "end ?" : "end " + fmt(pend.e)}`; };
+$("sNow").onclick = () => { pend.s = frameNow(); showPend(); }; $("eNow").onclick = () => { pend.e = frameNow(); showPend(); };
+document.querySelectorAll("input[name=cat]").forEach(r => r.onchange = () => $("sub").classList.toggle("off", r.value !== "wrongway"));
+$("add").onclick = () => { const c = (document.querySelector("input[name=cat]:checked") || {}).value, w = (document.querySelector("input[name=when]:checked") || {}).value;
+  if (pend.s === null || pend.e === null) { $("pending").textContent = "Set a start and an end first."; return; }
+  if (!CATS.includes(c)) { $("pending").textContent = "Choose what the gripper does."; return; }
+  if (c === "wrongway" && !WHEN.includes(w)) { $("pending").textContent = "Say when the wrong-way push happens."; return; }
+  const s = Math.min(pend.s, pend.e), e = Math.max(pend.s, pend.e); lab().segments.push(c === "wrongway" ? { s, e, cat: c, when: w } : { s, e, cat: c });
+  document.querySelectorAll("input[name=cat], input[name=when]").forEach(x => x.checked = false); $("sub").classList.add("off"); schedule(); render(); };
+$("still").onchange = () => { lab().still_cant = $("still").checked; schedule(); render(); };
+$("text").oninput = () => { lab().text = $("text").value.slice(0, 2000); schedule(); };
+$("prev").onclick = () => { st.cur--; persist(); render(); }; $("next").onclick = () => { st.cur++; persist(); render(); };
+$("dl").onclick = () => { const b = new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" }); const a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = `gesture-r2-${st.rater || "anon"}.json`; a.click(); };
+if (st.rater) { document.body.classList.remove("locked"); status(`Signed in as "${st.rater}" (this browser)`); }
+render();
+</script>
+</body>
+</html>
